@@ -43,7 +43,7 @@ const THEMES = [
   { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト", icon: "🍜" },
   { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい", icon: "⏳" },
   { title: "理想のプロポーズ", min: "最悪", max: "最高", icon: "💍" },
-  { title: "あったら嫌な法律", min: "まだ換せる", max: "絶対ムリ", icon: "⚖️" },
+  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ", icon: "⚖️" },
   { title: "自分の好きなところ", min: "ふつう", max: "大好き", icon: "❤️" },
   { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい", icon: "✈️" },
   { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい", icon: "✍️" },
@@ -90,10 +90,9 @@ export default function App() {
   const [customMin, setCustomMin] = useState("");
   const [customMax, setCustomMax] = useState("");
 
-  // --- チャット用ステート ---
   const [chatList, setChatList] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null); // 自動スクロール用
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const styleId = "ito-animation-styles";
@@ -163,12 +162,10 @@ export default function App() {
       setCurrentTheme(snapshot.val() || null);
     });
 
-    // --- チャットデータのリアルタイム同期を取得 ---
     const chatRef = ref(db, `rooms/${roomId}/chats`);
     onValue(chatRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // オブジェクト形式を配列形式に変換
         const loadedChats = Object.values(data);
         setChatList(loadedChats);
       } else {
@@ -177,7 +174,6 @@ export default function App() {
     });
   }, [roomId]);
 
-  // 新しいチャットが来たら自動で一番下へスクロール
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatList]);
@@ -241,17 +237,16 @@ export default function App() {
     setCustomMax("");
   };
 
-  // --- チャットを送信する処理 ---
   const sendChatMessage = () => {
     if (!chatInput.trim()) return;
     const chatRef = ref(db, `rooms/${roomId}/chats`);
-    const newChatRef = push(chatRef); // 自動で新しいIDを発行して追加
+    const newChatRef = push(chatRef);
     set(newChatRef, {
       sender: name,
       text: chatInput,
       timestamp: Date.now()
     });
-    setChatInput(""); // 入力欄をクリア
+    setChatInput("");
   };
 
   const copyUrl = () => {
@@ -291,12 +286,11 @@ export default function App() {
   const submittedPlayersCount = Object.values(players).filter((p: any) => p.word !== "").length;
   const isAllSubmitted = totalPlayersCount > 0 && totalPlayersCount === submittedPlayersCount;
 
-  // --- 🎨 スタイル定義 ---
   const containerStyle: React.CSSProperties = {
     fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
     background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
     minHeight: "100vh",
-    padding: "20px 15px 40px 15px", // 下部に余裕を持たせる
+    padding: "20px 15px 40px 15px",
     color: "#333",
   };
 
@@ -331,7 +325,6 @@ export default function App() {
     marginBottom: "10px"
   };
 
-  // ================= TOP画面 =================
   if (!isJoined) {
     return (
       <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -377,12 +370,10 @@ export default function App() {
     );
   }
 
-  // ================= ゲーム本編画面 =================
   return (
     <div style={containerStyle}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
         
-        {/* URL共有バナー */}
         <div style={{ ...cardStyle, background: "linear-gradient(45deg, #54a0ff, #00d2d3)", color: "white", padding: "15px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
@@ -393,7 +384,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* 📋 リアルタイム参加状況カウンター */}
         <div style={{ 
           ...cardStyle, 
           background: isAllSubmitted ? "linear-gradient(45deg, #10ac84, #1dd1a1)" : "#fff", 
@@ -410,7 +400,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* お題表示エリア */}
         <div style={{ ...cardStyle, background: "#fff", border: "3px solid #ff6b6b", textAlign: "center" }}>
           <div style={{ backgroundColor: "#ff6b6b", color: "white", padding: "4px 14px", borderRadius: "15px", fontSize: "12px", fontWeight: "bold", display: "inline-block" }}>🎯 今回のお題</div>
           
@@ -463,7 +452,6 @@ export default function App() {
           )}
         </div>
         
-        {/* 自分の秘密の数字カード */}
         <div style={{ ...cardStyle, background: "linear-gradient(135deg, #2d3436 0%, #000000 100%)", color: "white", textAlign: "center", border: "3px solid #ffd700" }}>
           <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#ffd700", fontWeight: "bold" }}>Your Secret Card</span>
           <div style={{ fontSize: "68px", fontWeight: "900", color: "#ffd700", textShadow: "0 0 15px rgba(255,215,0,0.6)", margin: "5px 0" }}>
@@ -480,12 +468,11 @@ export default function App() {
           )}
         </div>
 
-        {/* みんなの並べ替えエリア */}
         <div style={cardStyle}>
           <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3436" }}>🧩 みんなの並べ替えボード</h3>
           <p style={{ fontSize: "12px", color: "#74b9ff", margin: "0 0 15px 0", fontWeight: "bold" }}>💡 カードをドラッグして、数字が小さい順に並び替えよう！</p>
           
-          <div style={{ display: "flex", justify穗ontent: "space-between", fontSize: "11px", color: "#b2bec3", fontWeight: "bold", marginBottom: "5px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#b2bec3", fontWeight: "bold", marginBottom: "5px" }}>
             <span>◀ 小さい (1)</span>
             <span>大きい (100) ▶</span>
           </div>
@@ -556,13 +543,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* 💬 追加：リアルタイムゲーム内チャットボード */}
         <div style={{ ...cardStyle, border: "2px solid #54a0ff", padding: "15px" }}>
           <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", fontWeight: "900", color: "#2d3436", display: "flex", alignItems: "center", gap: "5px" }}>
             💬 お部屋のチャット欄 <span style={{ fontSize: "11px", color: "#74b9ff", fontWeight: "normal" }}>※次のゲームへ進むとクリアされます</span>
           </h3>
           
-          {/* メッセージ履歴エリア */}
           <div style={{ 
             height: "150px", 
             overflowY: "auto", 
@@ -606,24 +591,22 @@ export default function App() {
                 );
               })
             )}
-            <div ref={chatEndRef} /> {/* ここめがけて自動スクロール */}
+            <div ref={chatEndRef} />
           </div>
 
-          {/* 入力フォーム */}
           <div style={{ display: "flex", gap: "8px" }}>
             <input 
               type="text" 
               placeholder="ここにメッセージを入力..." 
               value={chatInput} 
               onChange={(e) => setChatInput(e.target.value)} 
-              onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }} // Enterキーでも送信可能に
+              onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }}
               style={{ padding: "10px 15px", flex: 1, fontSize: "14px", borderRadius: "20px", border: "2px solid #eee", outline: "none" }}
             />
             <button onClick={sendChatMessage} style={{ ...buttonStyle("#54a0ff"), padding: "0 20px", fontSize: "14px" }}>送信</button>
           </div>
         </div>
 
-        {/* ホスト専用の答え合わせパネル */}
         {isHost && (
           <div style={{ ...cardStyle, backgroundColor: "#fff9db", border: "2px solid #fab005" }}>
             <h3 style={{ margin: "0 0 10px 0", color: "#f57c00", fontSize: "16px", fontWeight: "bold" }}>👑 ホスト進行コントローラー</h3>
