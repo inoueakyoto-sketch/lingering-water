@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ref, onValue, set } from "firebase/database";
+import { ref, onValue, set, remove } from "firebase/database";
 import { db } from "./firebase";
 
 // --- itoアプリ用 お題100選（イラスト用アイコン付き） ---
@@ -43,7 +43,7 @@ const THEMES = [
   { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト", icon: "🍜" },
   { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい", icon: "⏳" },
   { title: "理想のプロポーズ", min: "最悪", max: "最高", icon: "💍" },
-  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ", icon: "⚖️" },
+  { title: "あったら嫌な法律", min: "まだ換せる", max: "絶対ムリ", icon: "⚖️" },
   { title: "自分の好きなところ", min: "ふつう", max: "大好き", icon: "❤️" },
   { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい", icon: "✈️" },
   { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい", icon: "✍️" },
@@ -90,7 +90,6 @@ export default function App() {
   const [customMin, setCustomMin] = useState("");
   const [customMax, setCustomMax] = useState("");
 
-  // アニメーション用CSSの注入
   useEffect(() => {
     const styleId = "ito-animation-styles";
     if (!document.getElementById(styleId)) {
@@ -177,6 +176,22 @@ export default function App() {
     
     const newBoard = board.includes(name) ? [...board] : [...board, name];
     set(ref(db, `rooms/${roomId}/board`), newBoard);
+  };
+
+  // --- TOP画面用の緊急リセット処理 ---
+  const forceResetRoomFromTop = () => {
+    if (roomId === "") return alert("リセットしたい部屋の名前（合言葉）を入力してください！");
+    if (window.confirm(`「${roomId}」のお部屋データを完全に初期化しますか？\n（動かなくなった場合の救急用ボタンです）`)) {
+      remove(ref(db, `rooms/${roomId}`))
+        .then(() => {
+          alert(`「${roomId}」の部屋データをクリアしました。最初から新しく遊べます！`);
+          // 招待用URLのパラメータをクリアして真っ新なトップへ
+          window.location.href = window.location.origin + window.location.pathname;
+        })
+        .catch((err) => {
+          alert("エラーが発生しました: " + err.message);
+        });
+    }
   };
 
   const submitWord = () => {
@@ -282,6 +297,7 @@ export default function App() {
     marginBottom: "10px"
   };
 
+  // ================= TOP画面（ログイン・リセット） =================
   if (!isJoined) {
     return (
       <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -314,12 +330,34 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
             <button onClick={() => joinGame(true)} style={buttonStyle("#ff9f43")}>👑 部屋を作って参加（ホスト）</button>
             <button onClick={() => joinGame(false)} style={buttonStyle("#10ac84")}>👤 この部屋に参加（ゲスト）</button>
+            
+            {/* 🚨 追加：緊急部屋データリセットボタン */}
+            <div style={{ marginTop: "15px", paddingTop: "15px", borderTop: "1px dashed #eee" }}>
+              <p style={{ fontSize: "11px", color: "#999", margin: "0 0 8px 0" }}>⚠️ ホストがいなくなって動かなくなった時は：</p>
+              <button 
+                onClick={forceResetRoomFromTop} 
+                style={{ 
+                  backgroundColor: "transparent", 
+                  color: "#ff4757", 
+                  border: "1px solid #ff4757", 
+                  borderRadius: "20px", 
+                  padding: "6px 15px", 
+                  fontSize: "12px", 
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  width: "100%"
+                }}
+              >
+                🔄 部屋のデータを強制リセットする
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // ================= ゲーム本編画面 =================
   return (
     <div style={containerStyle}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
@@ -461,9 +499,8 @@ export default function App() {
               const p = players[playerName];
               if (!p) return null;
               
-              // 現在めくられているカードかどうかを判定
               let isRevealed = false;
-              let isJustRevealed = false; // まさに今めくられたカードか
+              let isJustRevealed = false;
 
               if (revealMode === "asc") {
                 if (index <= revealIndex) isRevealed = true;
@@ -473,7 +510,6 @@ export default function App() {
                 if ((board.length - 1 - index) === revealIndex) isJustRevealed = true;
               }
 
-              // 数字に応じたグラデーションカラー（1に近いほど青、100に近いほど鮮やかな赤）
               const num = p.number || 50;
               const revealedCardBg = `linear-gradient(135deg, rgb(${Math.floor(200 + num * 0.55)}, ${Math.floor(250 - num * 2)}, ${Math.floor(255 - num * 2)}) 0%, rgb(${Math.floor(255)}, ${Math.floor(230 - num * 1.5)}, ${Math.floor(150 - num * 1.2)}) 100%)`;
 
