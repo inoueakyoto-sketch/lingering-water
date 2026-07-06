@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ref, onValue, set } from "firebase/database";
-// @ts-ignore
 import { db } from "./firebase";
 
 // --- ito レインボー風 お題100選（1と100の基準付き） ---
@@ -8,79 +7,27 @@ const THEMES = [
   { title: "カバンに入っていたら嬉しいもの", min: "嬉しくない", max: "嬉しい" },
   { title: "朝ごはんに食べたいもの", min: "食べたくない", max: "食べたい" },
   { title: "奇跡の体験", min: "少し奇跡", max: "超奇跡" },
-  {
-    title: "お尻から出てきたらビックリするもの",
-    min: "少しビックリ",
-    max: "超ビックリ",
-  },
-  {
-    title: "科学者になって考えよう 発明したい薬",
-    min: "いらない",
-    max: "絶対に欲しい",
-  },
-  {
-    title: "中学生になって考えよう カッコいいもの",
-    min: "カッコわるい",
-    max: "カッコいい",
-  },
-  {
-    title: "桃太郎になって考えよう 頼りになる家来",
-    min: "頼りにならない",
-    max: "超頼りになる",
-  },
+  { title: "お尻から出てきたらビックリするもの", min: "少しビックリ", max: "超ビックリ" },
+  { title: "科学者になって考えよう 発明したい薬", min: "いらない", max: "絶対に欲しい" },
+  { title: "中学生になって考えよう カッコいいもの", min: "カッコわるい", max: "カッコいい" },
+  { title: "桃太郎になって考えよう 頼りになる家来", min: "頼りにならない", max: "超頼りになる" },
   { title: "赤ちゃんになって考えよう 最高の瞬間", min: "最悪", max: "最高" },
-  {
-    title: "魔王になって考えよう こんな勇者はイヤだ",
-    min: "まだマシ",
-    max: "超イヤだ",
-  },
-  {
-    title: "1000円くらいまででできる楽しいこと",
-    min: "そこそこ楽しい",
-    max: "超楽しい",
-  },
-  {
-    title: "学校の先生に怒られそうなこと",
-    min: "怒られない",
-    max: "絶対怒られる",
-  },
-  {
-    title: "ショックを受けた好きな人のクセ",
-    min: "少しショック",
-    max: "超ショック",
-  },
+  { title: "魔王になって考えよう こんな勇者はイヤだ", min: "まだマシ", max: "超イヤだ" },
+  { title: "1000円くらいまででできる楽しいこと", min: "そこそこ楽しい", max: "超楽しい" },
+  { title: "学校の先生に怒られそうなこと", min: "怒られない", max: "絶対怒られる" },
+  { title: "ショックを受けた好きな人のクセ", min: "少しショック", max: "超ショック" },
   { title: "ふだん聞く言葉の頻度", min: "あまり聞かない", max: "よく聞く" },
   { title: "動物園にいる動物の人気", min: "人気ない", max: "大人気" },
-  {
-    title: "祖父母になって考えよう 孫の嬉しい言葉",
-    min: "ふつう",
-    max: "超嬉しい",
-  },
+  { title: "祖父母になって考えよう 孫の嬉しい言葉", min: "ふつう", max: "超嬉しい" },
   { title: "踏んだら痛そうなもの", min: "痛くない", max: "激痛" },
   { title: "勇気ある行動", min: "勇気いらない", max: "超勇気いる" },
-  {
-    title: "分身ができたらやってほしいこと",
-    min: "やってほしくない",
-    max: "絶対やってほしい",
-  },
+  { title: "分身ができたらやってほしいこと", min: "やってほしくない", max: "絶対やってほしい" },
   { title: "変顔の度合い（言葉で表現）", min: "ふつうの顔", max: "やばい変顔" },
-  {
-    title: "おみやげにもらったら嬉しいもの",
-    min: "嬉しくない",
-    max: "超嬉しい",
-  },
-  {
-    title: "猫になって考えよう 心地のいい場所",
-    min: "落ち着かない",
-    max: "最高に心地いい",
-  },
+  { title: "おみやげにもらったら嬉しいもの", min: "嬉しくない", max: "超嬉しい" },
+  { title: "猫になって考えよう 心地のいい場所", min: "落ち着かない", max: "最高に心地いい" },
   { title: "幸せを感じること", min: "小さな幸せ", max: "最大の幸せ" },
   { title: "無人島に持っていきたいもの", min: "役に立たない", max: "絶対必要" },
-  {
-    title: "宇宙人になって考えよう 地球の不思議なもの",
-    min: "普通",
-    max: "超不思議",
-  },
+  { title: "宇宙人になって考えよう 地球の不思議なもの", min: "普通", max: "超不思議" },
   { title: "テンションが上がる曲", min: "上がらない", max: "爆上がり" },
   { title: "コンビニでつい買ってしまうもの", min: "買わない", max: "絶対買う" },
   { title: "ゾンビの世界で生き残るための武器", min: "すぐ死ぬ", max: "最強" },
@@ -112,182 +59,61 @@ const THEMES = [
   { title: "やってみたいアルバイト", min: "やりたくない", max: "絶対やりたい" },
   { title: "好きなテレビ番組", min: "見ない", max: "絶対見る" },
   { title: "理想の家", min: "住みたくない", max: "最高" },
-  {
-    title: "お弁当に入っていて嬉しいおかず",
-    min: "テンション下がる",
-    max: "最高",
-  },
+  { title: "お弁当に入っていて嬉しいおかず", min: "テンション下がる", max: "最高" },
   { title: "一番怖いお化け", min: "怖くない", max: "超怖い" },
   { title: "かっこいい苗字", min: "ふつう", max: "超かっこいい" },
   { title: "可愛い動物", min: "可愛くない", max: "超可愛い" },
   { title: "無駄遣いしてしまったこと", min: "少し後悔", max: "大後悔" },
   { title: "好きなファストフード", min: "食べない", max: "毎日食べたい" },
   { title: "憧れの超能力", min: "いらない", max: "絶対欲しい" },
-  {
-    title: "総理大臣になって考えよう やりたいこと",
-    min: "どうでもいい",
-    max: "絶対やる",
-  },
+  { title: "総理大臣になって考えよう やりたいこと", min: "どうでもいい", max: "絶対やる" },
   { title: "好きな寿司ネタ", min: "食べない", max: "大好物" },
-  { title: "絶対にやりたくない罰ゲーム", min: "余裕", max: "絶対ムリ" },
-  {
-    title: "幽霊になって考えよう 驚かせる方法",
-    min: "驚かない",
-    max: "気絶する",
-  },
-  {
-    title: "サンタクロースになって考えよう 配りたいもの",
-    min: "いらない",
-    max: "超嬉しい",
-  },
-  {
-    title: "YouTuberになって考えよう バズる企画",
-    min: "スベる",
-    max: "大バズり",
-  },
-  {
-    title: "社長になって考えよう 社員へのボーナス",
-    min: "ケチ",
-    max: "太っ腹",
-  },
-  {
-    title: "映画監督になって考えよう 撮りたいジャンル",
-    min: "つまらない",
-    max: "超大作",
-  },
-  {
-    title: "忍者になって考えよう 使える忍術",
-    min: "役に立たない",
-    max: "最強",
-  },
-  {
-    title: "探偵になって考えよう 解決したい事件",
-    min: "退屈な事件",
-    max: "世紀の大事件",
-  },
-  {
-    title: "勇者になって考えよう 最初の村の住人",
-    min: "冷たい",
-    max: "超親切",
-  },
-  {
-    title: "アイドルになって考えよう 嬉しいファンサ",
-    min: "嬉しくない",
-    max: "超嬉しい",
-  },
-  { title: "神様になって考えよう 作りたい世界", min: "地獄", max: "天国" },
-  {
-    title: "鳥になって考えよう 飛びたい場所",
-    min: "行きたくない",
-    max: "絶景",
-  },
-  { title: "魚になって考えよう 泳ぎたい海", min: "ドブ川", max: "綺麗な海" },
-  { title: "虫になって考えよう 嫌なこと", min: "まだマシ", max: "最悪" },
-  { title: "花になって考えよう 咲きたい場所", min: "過酷", max: "最高の環境" },
-  {
-    title: "星になって考えよう 見られたい時",
-    min: "見えない",
-    max: "一番輝く",
-  },
-  { title: "風になって考えよう 吹きたい場所", min: "そよ風", max: "暴風" },
-  { title: "雪になって考えよう 降りたい日", min: "迷惑", max: "ロマンチック" },
-  {
-    title: "炎になって考えよう 燃やしたいもの",
-    min: "燃えない",
-    max: "大炎上",
-  },
-  {
-    title: "水になって考えよう 流れつきたい場所",
-    min: "泥水",
-    max: "オアシス",
-  },
-  { title: "土になって考えよう 育てたい植物", min: "雑草", max: "美しい花" },
-  { title: "光になって考えよう 照らしたいもの", min: "闇", max: "希望" },
-  {
-    title: "闇になって考えよう 隠したいもの",
-    min: "バレバレ",
-    max: "絶対秘密",
-  },
-  {
-    title: "時間になって考えよう 止めたい瞬間",
-    min: "どうでもいい",
-    max: "永遠にしたい",
-  },
-  { title: "空間になって考えよう 広げたい場所", min: "狭い", max: "無限" },
-  {
-    title: "重力になって考えよう 引き寄せたいもの",
-    min: "反発",
-    max: "超引力",
-  },
-  {
-    title: "運命になって考えよう 出会わせたい人",
-    min: "最悪の相性",
-    max: "運命の人",
-  },
-  { title: "奇跡になって考えよう 起こしたいこと", min: "日常", max: "大奇跡" },
-  { title: "夢になって考えよう 見せたい世界", min: "悪夢", max: "最高の夢" },
-  {
-    title: "希望になって考えよう 与えたいもの",
-    min: "絶望",
-    max: "大いなる希望",
-  },
-  { title: "愛になって考えよう 伝えたい言葉", min: "無関心", max: "最大の愛" },
-  { title: "心になって考えよう 感じたいこと", min: "無感情", max: "大感動" },
-  { title: "魂になって考えよう 宿りたいもの", min: "抜け殻", max: "最高の器" },
-  { title: "命になって考えよう 生きたい長さ", min: "一瞬", max: "永遠" },
-  {
-    title: "未来になって考えよう 見せたい景色",
-    min: "ディストピア",
-    max: "ユートピア",
-  },
-  {
-    title: "過去になって考えよう やり直したいこと",
-    min: "後悔なし",
-    max: "絶対やり直す",
-  },
-  {
-    title: "現在になって考えよう 楽しみたいこと",
-    min: "退屈",
-    max: "最高に楽しい",
-  },
+  { title: "絶対にやりたくない罰ゲーム", min: "余裕", max: "絶対ムリ" }
 ];
 
 export default function App() {
+  const [roomId, setRoomId] = useState("");
   const [name, setName] = useState("");
   const [isJoined, setIsJoined] = useState(false);
   const [isHost, setIsHost] = useState(false);
-
+  
   const [players, setPlayers] = useState<any>({});
   const [board, setBoard] = useState<string[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
-  const [revealMode, setRevealMode] = useState<"asc" | "desc">("asc");
-  const [currentTheme, setCurrentTheme] = useState<{
-    title: string;
-    min: string;
-    max: string;
-  } | null>(null);
+  const [revealMode, setRevealMode] = useState<"asc"|"desc">("asc");
+  const [currentTheme, setCurrentTheme] = useState<{title: string, min: string, max: string} | null>(null);
 
   const [myWord, setMyWord] = useState("");
-  const [currentUrl, setCurrentUrl] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
 
+  // URLから自動的にルームIDを読み込む（招待用URLの処理）
   useEffect(() => {
-    setCurrentUrl(window.location.href);
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get("room");
+    if (urlRoom) {
+      setRoomId(urlRoom);
+    }
   }, []);
 
+  // 部屋が決まったらFirebaseと同期を開始する
   useEffect(() => {
-    const playersRef = ref(db, "gameRoom/players");
+    if (!roomId) return;
+
+    // 招待用URLの作成
+    const baseUrl = window.location.origin + window.location.pathname;
+    setShareUrl(`${baseUrl}?room=${encodeURIComponent(roomId)}`);
+
+    const playersRef = ref(db, `rooms/${roomId}/players`);
     onValue(playersRef, (snapshot) => {
-      if (snapshot.val()) setPlayers(snapshot.val());
-      else setPlayers({});
+      setPlayers(snapshot.val() || {});
     });
 
-    const boardRef = ref(db, "gameRoom/board");
+    const boardRef = ref(db, `rooms/${roomId}/board`);
     onValue(boardRef, (snapshot) => {
-      if (snapshot.val()) setBoard(snapshot.val());
-      else setBoard([]);
+      setBoard(snapshot.val() || []);
     });
 
-    const revealRef = ref(db, "gameRoom/reveal");
+    const revealRef = ref(db, `rooms/${roomId}/reveal`);
     onValue(revealRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -298,56 +124,50 @@ export default function App() {
       }
     });
 
-    const themeRef = ref(db, "gameRoom/theme");
+    const themeRef = ref(db, `rooms/${roomId}/theme`);
     onValue(themeRef, (snapshot) => {
-      if (snapshot.val()) setCurrentTheme(snapshot.val());
-      else setCurrentTheme(null);
+      setCurrentTheme(snapshot.val() || null);
     });
-  }, []);
+  }, [roomId]);
 
   const joinGame = (hostFlag: boolean) => {
-    if (name === "") return alert("名前を入力してください！");
-
+    if (roomId === "") return alert("部屋の名前（合言葉）を入力してください！");
+    if (name === "") return alert("あなたの名前を入力してください！");
+    
     setIsHost(hostFlag);
     setIsJoined(true);
 
     const randomNumber = Math.floor(Math.random() * 100) + 1;
-
-    set(ref(db, "gameRoom/players/" + name), {
+    
+    set(ref(db, `rooms/${roomId}/players/${name}`), {
       name: name,
       number: randomNumber,
       word: "",
     });
-
-    setBoard((prev) => {
-      if (prev.includes(name)) return prev;
-      const newBoard = [...prev, name];
-      set(ref(db, "gameRoom/board"), newBoard);
-      return newBoard;
-    });
+    
+    // 重複を避けて盤面に追加
+    const newBoard = board.includes(name) ? [...board] : [...board, name];
+    set(ref(db, `rooms/${roomId}/board`), newBoard);
   };
 
   const submitWord = () => {
-    set(ref(db, "gameRoom/players/" + name + "/word"), myWord);
+    set(ref(db, `rooms/${roomId}/players/${name}/word`), myWord);
   };
 
   const pickRandomTheme = () => {
     const randomIndex = Math.floor(Math.random() * THEMES.length);
-    const selectedTheme = THEMES[randomIndex];
-    set(ref(db, "gameRoom/theme"), selectedTheme);
+    set(ref(db, `rooms/${roomId}/theme`), THEMES[randomIndex]);
   };
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(currentUrl);
-    alert("URLをコピーしました！友達にLINEなどで送ってください。");
+    navigator.clipboard.writeText(shareUrl);
+    alert("このお部屋専用の招待URLをコピーしました！LINEなどで友達に送ってください。");
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData("dragIndex", index.toString());
   };
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     const dragIndex = parseInt(e.dataTransfer.getData("dragIndex"));
     if (dragIndex === dropIndex) return;
@@ -355,479 +175,248 @@ export default function App() {
     const newBoard = [...board];
     const [draggedItem] = newBoard.splice(dragIndex, 1);
     newBoard.splice(dropIndex, 0, draggedItem);
-
-    set(ref(db, "gameRoom/board"), newBoard);
+    
+    set(ref(db, `rooms/${roomId}/board`), newBoard);
   };
 
-  const startReveal = (mode: "asc" | "desc") => {
-    set(ref(db, "gameRoom/reveal"), { index: 0, mode: mode });
+  const startReveal = (mode: "asc"|"desc") => {
+    set(ref(db, `rooms/${roomId}/reveal`), { index: 0, mode: mode });
   };
   const nextReveal = () => {
-    set(ref(db, "gameRoom/reveal/index"), revealIndex + 1);
+    set(ref(db, `rooms/${roomId}/reveal/index`), revealIndex + 1);
   };
   const resetGame = () => {
-    if (window.confirm("ゲームをリセットして最初から遊びますか？")) {
-      set(ref(db, "gameRoom"), null);
-      window.location.reload();
+    if (window.confirm("ゲームをリセットして次のラウンドへ進みますか？")) {
+      set(ref(db, `rooms/${roomId}`), null);
+      // お題とカードだけリセットするためリロード
+      window.location.href = shareUrl;
     }
   };
 
-  // 参加前の画面
+  // --- 🎨 デザイン用のスタイルオブジェクト定義 ---
+  const containerStyle: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
+    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+    minHeight: "100vh",
+    padding: "20px 15px",
+    color: "#333",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: "#fff",
+    borderRadius: "16px",
+    padding: "20px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    marginBottom: "20px",
+  };
+
+  const buttonStyle = (bgColor: string): React.CSSProperties => ({
+    padding: "12px 20px",
+    backgroundColor: bgColor,
+    color: "white",
+    border: "none",
+    borderRadius: "25px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    transition: "all 0.2s"
+  });
+
+  // ================= 参加前の画面 =================
   if (!isJoined) {
     return (
-      <div
-        style={{
-          padding: "20px",
-          textAlign: "center",
-          fontFamily: "sans-serif",
-          maxWidth: "400px",
-          margin: "0 auto",
-        }}
-      >
-        <h1>ito ウェブアプリ</h1>
-        <p style={{ color: "#666" }}>
-          ニックネームを入力して参加方法を選んでください
-        </p>
-
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="あなたのニックネーム"
-          style={{
-            padding: "12px",
-            fontSize: "16px",
-            marginBottom: "20px",
-            width: "90%",
-            border: "2px solid #ccc",
-            borderRadius: "6px",
-          }}
-        />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          <div
-            style={{
-              backgroundColor: "#fff3e0",
-              padding: "15px",
-              borderRadius: "8px",
-            }}
-          >
-            <button
-              onClick={() => joinGame(true)}
-              style={{
-                padding: "12px 20px",
-                backgroundColor: "#ff9800",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                fontSize: "16px",
-                cursor: "pointer",
-                width: "100%",
-                fontWeight: "bold",
-              }}
-            >
-              👑 部屋を作る（ホスト）
-            </button>
+      <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "8px solid #ff4081" }}>
+          <h1 style={{ color: "#ff4081", fontSize: "32px", margin: "0 0 10px 0", letterSpacing: "2px" }}>ito Rainbow</h1>
+          <p style={{ color: "#666", fontSize: "14px", marginBottom: "25px" }}>価値観のニュアンスを合わせる協力ゲーム</p>
+          
+          <div style={{ textAlign: "left", marginBottom: "20px" }}>
+            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px" }}>🔑 部屋の名前（合言葉）</label>
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="例: たなか家、room123 など"
+              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "8px", border: "2px solid #ddd" }}
+            />
           </div>
-          <div
-            style={{
-              backgroundColor: "#e8f5e9",
-              padding: "15px",
-              borderRadius: "8px",
-            }}
-          >
-            <button
-              onClick={() => joinGame(false)}
-              style={{
-                padding: "12px 20px",
-                backgroundColor: "#4caf50",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                fontSize: "16px",
-                cursor: "pointer",
-                width: "100%",
-                fontWeight: "bold",
-              }}
-            >
-              👤 ゲストとして参加する
-            </button>
+
+          <div style={{ textAlign: "left", marginBottom: "30px" }}>
+            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px" }}>👤 あなたのニックネーム</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例: たろう"
+              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "8px", border: "2px solid #ddd" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+            <button onClick={() => joinGame(true)} style={buttonStyle("#ff9800")}>👑 部屋を作って参加（ホスト）</button>
+            <button onClick={() => joinGame(false)} style={buttonStyle("#4caf50")}>👤 この部屋に参加（ゲスト）</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // 参加後の画面
+  // ================= 参加後のゲーム画面 =================
   return (
-    <div
-      style={{
-        padding: "20px",
-        fontFamily: "sans-serif",
-        maxWidth: "600px",
-        margin: "0 auto",
-      }}
-    >
-      {/* 直接書き込んだURL共有エリア */}
-      <div
-        style={{
-          backgroundColor: "#f5f5f5",
-          padding: "10px",
-          borderRadius: "6px",
-          marginBottom: "20px",
-          fontSize: "14px",
-          border: "1px dashed #ccc",
-        }}
-      >
-        <p style={{ margin: "0 0 5px 0", fontWeight: "bold" }}>
-          📱 みんなに共有するURL：
-        </p>
-        <div style={{ display: "flex", gap: "5px" }}>
-          <input
-            type="text"
-            readOnly
-            value={currentUrl}
-            style={{ flex: 1, padding: "5px", color: "#666" }}
-          />
-          <button
-            onClick={copyUrl}
-            style={{
-              padding: "5px 10px",
-              cursor: "pointer",
-              backgroundColor: "#e0e0e0",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-            }}
-          >
-            コピー
-          </button>
-        </div>
-      </div>
-
-      <h2>{isHost ? "👑 ホスト画面" : "👤 参加者画面"}</h2>
-
-      <div
-        style={{
-          backgroundColor: "#fce4ec",
-          border: "2px solid #f8bbd0",
-          padding: "15px",
-          borderRadius: "8px",
-          marginBottom: "20px",
-          textAlign: "center",
-        }}
-      >
-        <h3
-          style={{ margin: "0 0 10px 0", color: "#c2185b", fontSize: "16px" }}
-        >
-          🎯 今ラウンドのお題
-        </h3>
-
-        {currentTheme ? (
-          <div>
-            <p
-              style={{
-                margin: "0 0 15px 0",
-                fontSize: "22px",
-                fontWeight: "bold",
-                color: "#880e4f",
-              }}
-            >
-              {currentTheme.title}
-            </p>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                backgroundColor: "#fff",
-                padding: "10px 15px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-              }}
-            >
-              <span style={{ color: "#2196f3", fontSize: "14px" }}>
-                ◀ 1: {currentTheme.min}
-              </span>
-              <span style={{ fontSize: "20px", color: "#ccc" }}>〜</span>
-              <span style={{ color: "#f44336", fontSize: "14px" }}>
-                100: {currentTheme.max} ▶
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p
-            style={{
-              margin: "10px 0",
-              fontSize: "20px",
-              fontWeight: "bold",
-              color: "#880e4f",
-            }}
-          >
-            （ホストがお題を決定中...）
-          </p>
-        )}
-
-        {isHost && (
-          <button
-            onClick={pickRandomTheme}
-            style={{
-              marginTop: "15px",
-              padding: "10px 20px",
-              backgroundColor: "#e91e63",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {currentTheme ? "🔄 お題を引き直す" : "🎲 お題をランダムで決める"}
-          </button>
-        )}
-      </div>
-
-      <div
-        style={{
-          backgroundColor: "#e3f2fd",
-          padding: "15px",
-          borderRadius: "8px",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>
-          あなたの数字:{" "}
-          <span style={{ color: "#d32f2f", fontSize: "28px" }}>
-            {players[name]?.number}
-          </span>
-        </h3>
-        <p style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#555" }}>
-          お題に沿った言葉を入力して送信してください
-        </p>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <input
-            type="text"
-            value={myWord}
-            onChange={(e) => setMyWord(e.target.value)}
-            placeholder="例：ドアノブの静電気"
-            style={{ padding: "10px", flex: 1, fontSize: "16px" }}
-          />
-          <button
-            onClick={submitWord}
-            style={{
-              padding: "10px 20px",
-              cursor: "pointer",
-              backgroundColor: "#2196f3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-            }}
-          >
-            送信
-          </button>
-        </div>
-      </div>
-
-      <hr style={{ margin: "25px 0" }} />
-
-      <h3>みんなの並べ替えエリア</h3>
-      <p style={{ fontSize: "14px", color: "#666" }}>
-        💡 カードをドラッグ＆ドロップで動かせます（全員の画面で同期）
-        <br />← 1に近い 100に近い →
-      </p>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          overflowX: "auto",
-          padding: "10px 0",
-          minHeight: "150px",
-        }}
-      >
-        {board.map((playerName, index) => {
-          const p = players[playerName];
-          if (!p) return null;
-
-          let isRevealed = false;
-          if (revealMode === "asc" && index <= revealIndex) isRevealed = true;
-          if (revealMode === "desc" && board.length - 1 - index <= revealIndex)
-            isRevealed = true;
-
-          return (
-            <div
-              key={playerName}
-              draggable={revealIndex === -1}
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index)}
-              style={{
-                border: "2px solid #ccc",
-                borderRadius: "8px",
-                width: "120px",
-                minWidth: "120px",
-                backgroundColor: isRevealed ? "#fff9c4" : "white",
-                padding: "10px",
-                cursor: revealIndex === -1 ? "grab" : "default",
-                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                transition: "all 0.3s",
-              }}
-            >
-              <p
-                style={{
-                  margin: "0 0 10px 0",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  borderBottom: "1px solid #eee",
-                  paddingBottom: "5px",
-                }}
-              >
-                {p.name}
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "12px",
-                  color: p.word ? "#333" : "#999",
-                  minHeight: "40px",
-                  wordBreak: "break-all",
-                }}
-              >
-                {p.word || "考え中..."}
-              </p>
-
-              <div
-                style={{
-                  textAlign: "center",
-                  marginTop: "10px",
-                  height: "30px",
-                }}
-              >
-                {isRevealed ? (
-                  <span
-                    style={{
-                      fontSize: "28px",
-                      fontWeight: "bold",
-                      color: "#d32f2f",
-                    }}
-                  >
-                    {p.number}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: "28px", color: "#ccc" }}>?</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {isHost && (
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "15px",
-            backgroundColor: "#fff3e0",
-            borderRadius: "8px",
-            border: "1px solid #ffe0b2",
-          }}
-        >
-          <h3 style={{ margin: "0 0 15px 0", color: "#e65100" }}>
-            👑 ホスト専用 進行コントローラー
-          </h3>
-
-          {board.length === 0 ? (
-            <p style={{ color: "#666", fontSize: "14px" }}>
-              現在、参加者の入室を待っています...
-            </p>
-          ) : revealIndex === -1 ? (
+    <div style={containerStyle}>
+      <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+        
+        {/* URL共有バナー（おしゃれ版） */}
+        <div style={{ ...cardStyle, background: "linear-gradient(45deg, #2196f3, #00bcd4)", color: "white", padding: "12px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: "14px", marginBottom: "10px" }}>
-                全員のカードの並び替えが終わったら、どちらからオープンするか選んでください：
-              </p>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  onClick={() => startReveal("asc")}
-                  style={{
-                    padding: "12px",
-                    flex: 1,
-                    backgroundColor: "#4caf50",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  1（小さい方）からめくる
-                </button>
-                <button
-                  onClick={() => startReveal("desc")}
-                  style={{
-                    padding: "12px",
-                    flex: 1,
-                    backgroundColor: "#2196f3",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  100（大きい方）からめくる
-                </button>
+              <span style={{ fontSize: "12px", opacity: 0.9 }}>お部屋の合言葉: <strong>{roomId}</strong></span>
+              <div style={{ fontSize: "14px", fontWeight: "bold" }}>📱 LINE等で友達を招待しよう！</div>
+            </div>
+            <button onClick={copyUrl} style={{ padding: "8px 16px", backgroundColor: "white", color: "#2196f3", border: "none", borderRadius: "20px", fontWeight: "bold", cursor: "pointer" }}>リンクをコピー</button>
+          </div>
+        </div>
+
+        {/* お題表示エリア（レインボーカード風） */}
+        <div style={{ ...cardStyle, background: "linear-gradient(135deg, #fff5f5 0%, #fff0f6 100%)", border: "3px solid #ff758c", textAlign: "center" }}>
+          <div style={{ display: "inline-block", backgroundColor: "#ff758c", color: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", marginBottom: "10px" }}>🎯 今ラウンドのお題</div>
+          
+          {currentTheme ? (
+            <div>
+              <h2 style={{ margin: "5px 0 15px 0", color: "#4a0e17", fontSize: "24px" }}>{currentTheme.title}</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(255,255,255,0.8)", padding: "12px 15px", borderRadius: "12px", border: "1px solid #ffb3c1" }}>
+                <span style={{ color: "#1e88e5", fontWeight: "bold", fontSize: "13px" }}>🟦 1 : {currentTheme.min}</span>
+                <span style={{ color: "#aaa" }}>◀ グラデーション ▶</span>
+                <span style={{ color: "#e53935", fontWeight: "bold", fontSize: "13px" }}>🟥 100 : {currentTheme.max}</span>
               </div>
             </div>
           ) : (
-            <div
-              style={{ display: "flex", gap: "10px", flexDirection: "column" }}
-            >
-              <p style={{ fontSize: "14px", margin: 0 }}>
-                ...オープン中：
-                <strong>
-                  {revealMode === "asc"
-                    ? "小さい方から順にオープン中"
-                    : "大きい方から順にオープン中"}
-                </strong>
-              </p>
-              <button
-                onClick={nextReveal}
-                disabled={revealIndex >= board.length - 1}
-                style={{
-                  padding: "15px",
-                  fontSize: "18px",
-                  backgroundColor: "#ff9800",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                }}
-              >
-                {revealIndex >= board.length - 1
-                  ? "🎉 すべてめくりました！"
-                  : "🔥 次のカードをめくる！"}
-              </button>
-              <button
-                onClick={resetGame}
-                style={{
-                  padding: "8px",
-                  backgroundColor: "#f44336",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  marginTop: "15px",
-                  fontSize: "12px",
-                }}
-              >
-                ゲームをリセットして次のラウンドへ
-              </button>
-            </div>
+            <p style={{ margin: "15px 0", fontSize: "18px", color: "#999", fontWeight: "bold" }}>ホストがお題を引くのを待っています...</p>
+          )}
+          
+          {isHost && (
+            <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff758c"), marginTop: "15px", fontSize: "14px", padding: "8px 20px" }}>
+              {currentTheme ? "🔄 べつのお題を引く" : "🎲 お題をランダムで決める"}
+            </button>
           )}
         </div>
-      )}
+        
+        {/* 自分の秘密の数字カード（ITOカード風デザイン） */}
+        <div style={{ ...cardStyle, background: "linear-gradient(135deg, #111 0%, #333 100%)", color: "white", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: "-20px", right: "-20px", width: "80px", height: "80px", background: "rgba(255,255,255,0.05)", borderRadius: "50%" }}></div>
+          <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "2px", opacity: 0.6 }}>Secret Number</span>
+          <h3 style={{ margin: "5px 0", fontSize: "16px" }}>あなたの秘密の数字</h3>
+          <div style={{ fontSize: "64px", fontWeight: "bold", color: "#ffd700", textShadow: "0 0 12px rgba(255,215,0,0.4)", margin: "10px 0" }}>
+            {players[name]?.number}
+          </div>
+          
+          <p style={{ fontSize: "13px", color: "#ccc", marginBottom: "12px" }}>数字の大きさを「言葉」に例えて全員に送信してください</p>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <input
+              type="text"
+              value={myWord}
+              onChange={(e) => setMyWord(e.target.value)}
+              placeholder="例：ドアノブの静電気"
+              style={{ padding: "12px", flex: 1, fontSize: "16px", borderRadius: "25px", border: "none", color: "#333" }}
+            />
+            <button onClick={submitWord} style={{ padding: "0 25px", backgroundColor: "#ff4081", color: "white", border: "none", borderRadius: "25px", fontWeight: "bold", cursor: "pointer" }}>送信</button>
+          </div>
+        </div>
+
+        {/* みんなの並べ替えエリア */}
+        <div style={cardStyle}>
+          <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🧩 みんなの並べ替えエリア</h3>
+          <p style={{ fontSize: "12px", color: "#888", margin: "0 0 15px 0" }}>💡 カードをドラッグして並び替えられます（全員に同期）</p>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#bbb", fontWeight: "bold", padding: "0 5px" }}>
+            <span>◀ 小さい（1に近い）</span>
+            <span>大きい（100に近い） ▶</span>
+          </div>
+          
+          <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "15px 5px", minHeight: "180px", alignItems: "center" }}>
+            {board.map((playerName, index) => {
+              const p = players[playerName];
+              if (!p) return null;
+              
+              let isRevealed = false;
+              if (revealMode === "asc" && index <= revealIndex) isRevealed = true;
+              if (revealMode === "desc" && (board.length - 1 - index) <= revealIndex) isRevealed = true;
+
+              return (
+                <div
+                  key={playerName}
+                  draggable={revealIndex === -1}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index)}
+                  style={{
+                    borderRadius: "12px",
+                    width: "110px",
+                    minWidth: "110px",
+                    height: "150px",
+                    background: isRevealed ? "linear-gradient(135deg, #fff9c4 0%, #fff59d 100%)" : "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
+                    border: isRevealed ? "3px solid #fbc02d" : "2px solid #e0e0e0",
+                    padding: "10px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    cursor: revealIndex === -1 ? "grab" : "default",
+                    boxShadow: "0 6px 12px rgba(0,0,0,0.05)",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <div style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", paddingBottom: "4px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  </div>
+                  
+                  <div style={{ fontSize: "12px", color: p.word ? "#444" : "#bbb", fontWeight: p.word ? "bold" : "normal", textAlign: "center", wordBreak: "break-all", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 0" }}>
+                    {p.word || "入力待ち..."}
+                  </div>
+                  
+                  <div style={{ textAlign: "center", backgroundColor: isRevealed ? "#fbc02d" : "#eee", borderRadius: "6px", padding: "4px 0" }}>
+                    {isRevealed ? (
+                      <span style={{ fontSize: "22px", fontWeight: "bold", color: "#d32f2f" }}>{p.number}</span>
+                    ) : (
+                      <span style={{ fontSize: "18px", fontWeight: "bold", color: "#aaa" }}>?</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ホスト専用の答え合わせパネル */}
+        {isHost && (
+          <div style={{ ...cardStyle, backgroundColor: "#fff8e1", border: "2px solid #ffe082" }}>
+            <h3 style={{ margin: "0 0 10px 0", color: "#f57c00", fontSize: "16px" }}>👑 ホスト専用 進行コントローラー</h3>
+            
+            {board.length === 0 ? (
+              <p style={{ color: "#888", fontSize: "13px" }}>参加者が入室するのを待っています...</p>
+            ) : revealIndex === -1 ? (
+              <div>
+                <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>並び替えが終わったら、どちらからオープンするか全員に発表して選んでください：</p>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#4caf50"), fontSize: "14px", flex: 1 }}>1（小さい順）から</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#2196f3"), fontSize: "14px", flex: 1 }}>100（大きい順）から</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
+                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#e65100" }}>
+                  📢 モード: {revealMode === "asc" ? "【小さい順】にオープン中！" : "【大きい順】にオープン中！"}
+                </div>
+                <button onClick={nextReveal} disabled={revealIndex >= board.length - 1} style={buttonStyle("#f57c00")}>
+                  {revealIndex >= board.length - 1 ? "🎉 すべてめくりました！" : "🔥 次のカードをめくる！"}
+                </button>
+                <button onClick={resetGame} style={{ padding: "6px", backgroundColor: "transparent", color: "#f44336", border: "1px solid #f44336", borderRadius: "20px", cursor: "pointer", marginTop: "10px", fontSize: "12px", fontWeight: "bold" }}>
+                  次ラウンドへ（部屋データをリセット）
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
