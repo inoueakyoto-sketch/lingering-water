@@ -2,73 +2,73 @@ import React, { useState, useEffect } from "react";
 import { ref, onValue, set } from "firebase/database";
 import { db } from "./firebase";
 
-// --- ito レインボー風 お題100選（1と100の基準付き） ---
+// --- ito レインボー風 お題100選（イラスト用アイコン付き） ---
 const THEMES = [
-  { title: "カバンに入っていたら嬉しいもの", min: "嬉しくない", max: "嬉しい" },
-  { title: "朝ごはんに食べたいもの", min: "食べたくない", max: "食べたい" },
-  { title: "奇跡の体験", min: "少し奇跡", max: "超奇跡" },
-  { title: "お尻から出てきたらビックリするもの", min: "少しビックリ", max: "超ビックリ" },
-  { title: "科学者になって考えよう 発明したい薬", min: "いらない", max: "絶対に欲しい" },
-  { title: "中学生になって考えよう カッコいいもの", min: "カッコわるい", max: "カッコいい" },
-  { title: "桃太郎になって考えよう 頼りになる家来", min: "頼りにならない", max: "超頼りになる" },
-  { title: "赤ちゃんになって考えよう 最高の瞬間", min: "最悪", max: "最高" },
-  { title: "魔王になって考えよう こんな勇者はイヤだ", min: "まだマシ", max: "超イヤだ" },
-  { title: "1000円くらいまででできる楽しいこと", min: "そこそこ楽しい", max: "超楽しい" },
-  { title: "学校の先生に怒られそうなこと", min: "怒られない", max: "絶対怒られる" },
-  { title: "ショックを受けた好きな人のクセ", min: "少しショック", max: "超ショック" },
-  { title: "ふだん聞く言葉の頻度", min: "あまり聞かない", max: "よく聞く" },
-  { title: "動物園にいる動物の人気", min: "人気ない", max: "大人気" },
-  { title: "祖父母になって考えよう 孫の嬉しい言葉", min: "ふつう", max: "超嬉しい" },
-  { title: "踏んだら痛そうなもの", min: "痛くない", max: "激痛" },
-  { title: "勇気ある行動", min: "勇気いらない", max: "超勇気いる" },
-  { title: "分身ができたらやってほしいこと", min: "やってほしくない", max: "絶対やってほしい" },
-  { title: "変顔の度合い（言葉で表現）", min: "ふつうの顔", max: "やばい変顔" },
-  { title: "おみやげにもらったら嬉しいもの", min: "嬉しくない", max: "超嬉しい" },
-  { title: "猫になって考えよう 心地のいい場所", min: "落ち着かない", max: "最高に心地いい" },
-  { title: "幸せを感じること", min: "小さな幸せ", max: "最大の幸せ" },
-  { title: "無人島に持っていきたいもの", min: "役に立たない", max: "絶対必要" },
-  { title: "宇宙人になって考えよう 地球の不思議なもの", min: "普通", max: "超不思議" },
-  { title: "テンションが上がる曲", min: "上がらない", max: "爆上がり" },
-  { title: "コンビニでつい買ってしまうもの", min: "買わない", max: "絶対買う" },
-  { title: "ゾンビの世界で生き残るための武器", min: "すぐ死ぬ", max: "最強" },
-  { title: "もらって困るプレゼント", min: "困らない", max: "超困る" },
-  { title: "大人の趣味", min: "つまらない", max: "超楽しい" },
-  { title: "子供の頃の夢", min: "なりたくない", max: "絶対なりたい" },
-  { title: "かっこいい必殺技の名前", min: "ダサい", max: "超かっこいい" },
-  { title: "怖いもの", min: "全然怖くない", max: "超怖い" },
-  { title: "あったら便利な魔法", min: "使えない", max: "超便利" },
-  { title: "犬になって考えよう 嬉しいこと", min: "ふつう", max: "超嬉しい" },
-  { title: "言われて嬉しい褒め言葉", min: "嬉しくない", max: "超嬉しい" },
-  { title: "歴史上の人物の強さ", min: "最弱", max: "最強" },
-  { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト" },
-  { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい" },
-  { title: "理想のプロポーズ", min: "最悪", max: "最高" },
-  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ" },
-  { title: "自分の好きなところ", min: "ふつう", max: "大好き" },
-  { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい" },
-  { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい" },
-  { title: "理想の休日", min: "退屈", max: "最高" },
-  { title: "なってみたい生き物", min: "なりたくない", max: "絶対なりたい" },
-  { title: "憧れの有名人", min: "憧れない", max: "超憧れる" },
-  { title: "泣けるシチュエーション", min: "泣けない", max: "号泣" },
-  { title: "100万円あったら何に使う？", min: "しょうもない", max: "有意義" },
-  { title: "最高のごちそう", min: "ふつう", max: "最高" },
-  { title: "秘密基地に置きたいもの", min: "いらない", max: "絶対置きたい" },
-  { title: "かっこいい乗り物", min: "ダサい", max: "超かっこいい" },
-  { title: "一番落ち着く場所", min: "落ち着かない", max: "超落ち着く" },
-  { title: "やってみたいアルバイト", min: "やりたくない", max: "絶対やりたい" },
-  { title: "好きなテレビ番組", min: "見ない", max: "絶対見る" },
-  { title: "理想の家", min: "住みたくない", max: "最高" },
-  { title: "お弁当に入っていて嬉しいおかず", min: "テンション下がる", max: "最高" },
-  { title: "一番怖いお化け", min: "怖くない", max: "超怖い" },
-  { title: "かっこいい苗字", min: "ふつう", max: "超かっこいい" },
-  { title: "可愛い動物", min: "可愛くない", max: "超可愛い" },
-  { title: "無駄遣いしてしまったこと", min: "少し後悔", max: "大後悔" },
-  { title: "好きなファストフード", min: "食べない", max: "毎日食べたい" },
-  { title: "憧れの超能力", min: "いらない", max: "絶対欲しい" },
-  { title: "総理大臣になって考えよう やりたいこと", min: "どうでもいい", max: "絶対やる" },
-  { title: "好きな寿司ネタ", min: "食べない", max: "大好物" },
-  { title: "絶対にやりたくない罰ゲーム", min: "余裕", max: "絶対ムリ" }
+  { title: "カバンに入っていたら嬉しいもの", min: "嬉しくない", max: "嬉しい", icon: "💼" },
+  { title: "朝ごはんに食べたいもの", min: "食べたくない", max: "食べたい", icon: "🥞" },
+  { title: "奇跡の体験", min: "少し奇跡", max: "超奇跡", icon: "✨" },
+  { title: "お尻から出てきたらビックリするもの", min: "少しビックリ", max: "超ビックリ", icon: "🍑" },
+  { title: "科学者になって考えよう 発明したい薬", min: "いらない", max: "絶対に欲しい", icon: "🧪" },
+  { title: "中学生になって考えよう カッコいいもの", min: "カッコわるい", max: "カッコいい", icon: "😎" },
+  { title: "桃太郎になって考えよう 頼りになる家来", min: "頼りにならない", max: "超頼りになる", icon: "🐕" },
+  { title: "赤ちゃんになって考えよう 最高の瞬間", min: "最悪", max: "最高", icon: "👶" },
+  { title: "魔王になって考えよう こんな勇者はイヤだ", min: "まだマシ", max: "超イヤだ", icon: "😈" },
+  { title: "1000円くらいまででできる楽しいこと", min: "そこそこ楽しい", max: "超楽しい", icon: "🪙" },
+  { title: "学校の先生に怒られそうなこと", min: "怒られない", max: "絶対怒られる", icon: "👨‍🏫" },
+  { title: "ショックを受けた好きな人のクセ", min: "少しショック", max: "超ショック", icon: "💔" },
+  { title: "ふだん聞く言葉の頻度", min: "あまり聞かない", max: "よく聞く", icon: "🗣️" },
+  { title: "動物園にいる動物の人気", min: "人気ない", max: "大人気", icon: "🦁" },
+  { title: "祖父母になって考えよう 孫の嬉しい言葉", min: "ふつう", max: "超嬉しい", icon: "👴" },
+  { title: "踏んだら痛そうなもの", min: "痛くない", max: "激痛", icon: "💥" },
+  { title: "勇気ある行動", min: "勇気いらない", max: "超勇気いる", icon: "🛡️" },
+  { title: "分身ができたらやってほしいこと", min: "やってほしくない", max: "絶対やってほしい", icon: "👥" },
+  { title: "変顔の度合い（言葉で表現）", min: "ふつうの顔", max: "やばい変顔", icon: "🤪" },
+  { title: "おみやげにもらったら嬉しいもの", min: "嬉しくない", max: "超嬉しい", icon: "🎁" },
+  { title: "猫になって考えよう 心地のいい場所", min: "落ち着かない", max: "最高に心地いい", icon: "🐈" },
+  { title: "幸せを感じること", min: "小さな幸せ", max: "最大の幸せ", icon: "🍀" },
+  { title: "無人島に持っていきたいもの", min: "役に立たない", max: "絶対必要", icon: "🏝️" },
+  { title: "宇宙人になって考えよう 地球の不思議なもの", min: "普通", max: "超不思議", icon: "👽" },
+  { title: "テンションが上がる曲", min: "上がらない", max: "爆上がり", icon: "🎵" },
+  { title: "コンビニでつい買ってしまうもの", min: "買わない", max: "絶対買う", icon: "🏪" },
+  { title: "ゾンビの世界で生き残るための武器", min: "すぐ死ぬ", max: "最強", icon: "🧟" },
+  { title: "もらって困るプレゼント", min: "困らない", max: "超困る", icon: "📦" },
+  { title: "大人の趣味", min: "つまらない", max: "超楽しい", icon: "⛳" },
+  { title: "子供の頃の夢", min: "なりたくない", max: "絶対なりたい", icon: "🚀" },
+  { title: "かっこいい必殺技の名前", min: "ダサい", max: "超かっこいい", icon: "⚡" },
+  { title: "怖いもの", min: "全然怖くない", max: "超怖い" , icon: "👻"},
+  { title: "あったら便利な魔法", min: "使えない", max: "超便利", icon: "🪄" },
+  { title: "犬になって考えよう 嬉しいこと", min: "ふつう", max: "超嬉しい", icon: "🐕" },
+  { title: "言われて嬉しい褒め言葉", min: "嬉しくない", max: "超嬉しい", icon: "👏" },
+  { title: "歴史上の人物の強さ", min: "最弱", max: "最強", icon: "⚔️" },
+  { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト", icon: "🍜" },
+  { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい", icon: "⏳" },
+  { title: "理想のプロポーズ", min: "最悪", max: "最高", icon: "💍" },
+  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ", icon: "⚖️" },
+  { title: "自分の好きなところ", min: "ふつう", max: "大好き", icon: "❤️" },
+  { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい", icon: "✈️" },
+  { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい", icon: "✍️" },
+  { title: "理想の休日", min: "退屈", max: "最高", icon: "🛌" },
+  { title: "なってみたい生き物", min: "なりたくない", max: "絶対なりたい", icon: "🦅" },
+  { title: "憧れの有名人", min: "憧れない", max: "超憧れる", icon: "⭐" },
+  { title: "泣けるシチュエーション", min: "泣けない", max: "😭" },
+  { title: "100万円あったら何に使う？", min: "しょうもない", max: "有意義", icon: "💰" },
+  { title: "最高のごちそう", min: "ふつう", max: "最高", icon: "🥩" },
+  { title: "秘密基地に置きたいもの", min: "いらない", max: "絶対置きたい", icon: "⛺" },
+  { title: "かっこいい乗り物", min: "ダサい", max: "超かっこいい", icon: "🏎️" },
+  { title: "一番落ち着く場所", min: "落ち着かない", max: "超落ち着く", icon: "🏠" },
+  { title: "やってみたいアルバイト", min: "やりたくない", max: "絶対やりたい", icon: "☕" },
+  { title: "好きなテレビ番組", min: "見ない", max: "絶対見る", icon: "📺" },
+  { title: "理想の家", min: "住みたくない", max: "最高", icon: "🏰" },
+  { title: "お弁当に入っていて嬉しいおかず", min: "テンション下がる", max: "最高", icon: "🍱" },
+  { title: "一番怖いお化け", min: "怖くない", max: "超怖い", icon: "👁️" },
+  { title: "かっこいい苗字", min: "ふつう", max: "超かっこいい", icon: "📛" },
+  { title: "可愛い動物", min: "可愛くない", max: "超可愛い", icon: "🐼" },
+  { title: "無駄遣いしてしまったこと", min: "少し後悔", max: "大後悔", icon: "💸" },
+  { title: "好きなファストフード", min: "食べない", max: "毎日食べたい", icon: "🍔" },
+  { title: "憧れの超能力", min: "いらない", max: "絶対欲しい", icon: "🔮" },
+  { title: "総理大臣になって考えよう やりたいこと", min: "どうでもいい", max: "絶対やる", icon: "👔" },
+  { title: "好きな寿司ネタ", min: "食べない", max: "大好物", icon: "🍣" },
+  { title: "絶対にやりたくない罰ゲーム", min: "余裕", max: "絶対ムリ", icon: "📣" }
 ];
 
 export default function App() {
@@ -81,25 +81,20 @@ export default function App() {
   const [board, setBoard] = useState<string[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
   const [revealMode, setRevealMode] = useState<"asc"|"desc">("asc");
-  const [currentTheme, setCurrentTheme] = useState<{title: string, min: string, max: string} | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<{title: string, min: string, max: string, icon?: string} | null>(null);
 
   const [myWord, setMyWord] = useState("");
   const [shareUrl, setShareUrl] = useState("");
 
-  // URLから自動的にルームIDを読み込む（招待用URLの処理）
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlRoom = params.get("room");
-    if (urlRoom) {
-      setRoomId(urlRoom);
-    }
+    if (urlRoom) setRoomId(urlRoom);
   }, []);
 
-  // 部屋が決まったらFirebaseと同期を開始する
   useEffect(() => {
     if (!roomId) return;
 
-    // 招待用URLの作成
     const baseUrl = window.location.origin + window.location.pathname;
     setShareUrl(`${baseUrl}?room=${encodeURIComponent(roomId)}`);
 
@@ -145,12 +140,12 @@ export default function App() {
       word: "",
     });
     
-    // 重複を避けて盤面に追加
     const newBoard = board.includes(name) ? [...board] : [...board, name];
     set(ref(db, `rooms/${roomId}/board`), newBoard);
   };
 
   const submitWord = () => {
+    if (!myWord) return alert("お題に沿った言葉を入力してください！");
     set(ref(db, `rooms/${roomId}/players/${name}/word`), myWord);
   };
 
@@ -188,15 +183,19 @@ export default function App() {
   const resetGame = () => {
     if (window.confirm("ゲームをリセットして次のラウンドへ進みますか？")) {
       set(ref(db, `rooms/${roomId}`), null);
-      // お題とカードだけリセットするためリロード
       window.location.href = shareUrl;
     }
   };
 
-  // --- 🎨 デザイン用のスタイルオブジェクト定義 ---
+  // --- 提出状況を数えるロジック ---
+  const totalPlayersCount = Object.keys(players).length;
+  const submittedPlayersCount = Object.values(players).filter((p: any) => p.word !== "").length;
+  const isAllSubmitted = totalPlayersCount > 0 && totalPlayersCount === submittedPlayersCount;
+
+  // --- 🎨 スタイル定義 ---
   const containerStyle: React.CSSProperties = {
     fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
-    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+    background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", // よりPOPで温かみのある背景に
     minHeight: "100vh",
     padding: "20px 15px",
     color: "#333",
@@ -204,10 +203,11 @@ export default function App() {
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: "#fff",
-    borderRadius: "16px",
+    borderRadius: "20px",
     padding: "20px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
     marginBottom: "20px",
+    border: "2px solid #fff"
   };
 
   const buttonStyle = (bgColor: string): React.CSSProperties => ({
@@ -219,121 +219,151 @@ export default function App() {
     fontSize: "16px",
     fontWeight: "bold",
     cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
     transition: "all 0.2s"
   });
 
-  // ================= 参加前の画面 =================
   if (!isJoined) {
     return (
       <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "8px solid #ff4081" }}>
-          <h1 style={{ color: "#ff4081", fontSize: "32px", margin: "0 0 10px 0", letterSpacing: "2px" }}>ito Rainbow</h1>
-          <p style={{ color: "#666", fontSize: "14px", marginBottom: "25px" }}>価値観のニュアンスを合わせる協力ゲーム</p>
+        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "10px solid #ff6b6b" }}>
+          <h1 style={{ color: "#ff6b6b", fontSize: "36px", margin: "0 0 5px 0", fontWeight: 900, letterSpacing: "1px" }}>ito Rainbow</h1>
+          <p style={{ color: "#777", fontSize: "13px", marginBottom: "30px" }}>価値観のズレを楽しむ、ハラハラ協力ゲーム</p>
           
           <div style={{ textAlign: "left", marginBottom: "20px" }}>
-            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px" }}>🔑 部屋の名前（合言葉）</label>
+            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px", color: "#555" }}>🔑 部屋の名前（合言葉）</label>
             <input
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              placeholder="例: たなか家、room123 など"
-              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "8px", border: "2px solid #ddd" }}
+              placeholder="例: ぼくらのお部屋、room1"
+              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "10px", border: "2px solid #eee" }}
             />
           </div>
 
-          <div style={{ textAlign: "left", marginBottom: "30px" }}>
-            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px" }}>👤 あなたのニックネーム</label>
+          <div style={{ textAlign: "left", marginBottom: "35px" }}>
+            <label style={{ fontWeight: "bold", fontSize: "14px", display: "block", marginBottom: "6px", color: "#555" }}>👤 あなたのニックネーム</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="例: たろう"
-              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "8px", border: "2px solid #ddd" }}
+              placeholder="例: まーくん"
+              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "10px", border: "2px solid #eee" }}
             />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            <button onClick={() => joinGame(true)} style={buttonStyle("#ff9800")}>👑 部屋を作って参加（ホスト）</button>
-            <button onClick={() => joinGame(false)} style={buttonStyle("#4caf50")}>👤 この部屋に参加（ゲスト）</button>
+            <button onClick={() => joinGame(true)} style={buttonStyle("#ff9f43")}>👑 部屋を作って参加（ホスト）</button>
+            <button onClick={() => joinGame(false)} style={buttonStyle("#10ac84")}>👤 この部屋に参加（ゲスト）</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ================= 参加後のゲーム画面 =================
   return (
     <div style={containerStyle}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
         
-        {/* URL共有バナー（おしゃれ版） */}
-        <div style={{ ...cardStyle, background: "linear-gradient(45deg, #2196f3, #00bcd4)", color: "white", padding: "12px 20px" }}>
+        {/* URL共有バナー */}
+        <div style={{ ...cardStyle, background: "linear-gradient(45deg, #54a0ff, #00d2d3)", color: "white", padding: "15px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <span style={{ fontSize: "12px", opacity: 0.9 }}>お部屋の合言葉: <strong>{roomId}</strong></span>
-              <div style={{ fontSize: "14px", fontWeight: "bold" }}>📱 LINE等で友達を招待しよう！</div>
+              <span style={{ fontSize: "11px", background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px" }}>部屋: {roomId}</span>
+              <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "5px" }}>📱 友達をLINEで誘おう！</div>
             </div>
-            <button onClick={copyUrl} style={{ padding: "8px 16px", backgroundColor: "white", color: "#2196f3", border: "none", borderRadius: "20px", fontWeight: "bold", cursor: "pointer" }}>リンクをコピー</button>
+            <button onClick={copyUrl} style={{ padding: "8px 16px", backgroundColor: "white", color: "#54a0ff", border: "none", borderRadius: "20px", fontWeight: "bold", cursor: "pointer" }}>招待リンクをコピー</button>
           </div>
         </div>
 
-        {/* お題表示エリア（レインボーカード風） */}
-        <div style={{ ...cardStyle, background: "linear-gradient(135deg, #fff5f5 0%, #fff0f6 100%)", border: "3px solid #ff758c", textAlign: "center" }}>
-          <div style={{ display: "inline-block", backgroundColor: "#ff758c", color: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", marginBottom: "10px" }}>🎯 今ラウンドのお題</div>
+        {/* 📋 リアルタイム参加状況カウンター */}
+        <div style={{ 
+          ...cardStyle, 
+          background: isAllSubmitted ? "linear-gradient(45deg, #10ac84, #1dd1a1)" : "#fff", 
+          color: isAllSubmitted ? "white" : "#333",
+          textAlign: "center",
+          padding: "15px",
+          border: "2px dashed " + (isAllSubmitted ? "#fff" : "#ff6b6b")
+        }}>
+          <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+            {isAllSubmitted ? "🎉 全員が言葉を提出しました！答え合わせを始めよう！" : "⏳ みんなの提出状況を待機中..."}
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: "900", marginTop: "5px" }}>
+            提出済み： <span style={{ color: isAllSubmitted ? "#fff" : "#ff6b6b", fontSize: "32px" }}>{submittedPlayersCount}</span> / {totalPlayersCount} 人
+          </div>
+        </div>
+
+        {/* お題表示エリア（POPなイラストアイコン入り） */}
+        <div style={{ ...cardStyle, background: "#fff", border: "3px solid #ff6b6b", textAlign: "center", position: "relative" }}>
+          <div style={{ backgroundColor: "#ff6b6b", color: "white", padding: "4px 14px", borderRadius: "15px", fontSize: "12px", fontWeight: "bold", display: "inline-block" }}>🎯 今回のお題</div>
           
           {currentTheme ? (
             <div>
-              <h2 style={{ margin: "5px 0 15px 0", color: "#4a0e17", fontSize: "24px" }}>{currentTheme.title}</h2>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(255,255,255,0.8)", padding: "12px 15px", borderRadius: "12px", border: "1px solid #ffb3c1" }}>
-                <span style={{ color: "#1e88e5", fontWeight: "bold", fontSize: "13px" }}>🟦 1 : {currentTheme.min}</span>
-                <span style={{ color: "#aaa" }}>◀ グラデーション ▶</span>
-                <span style={{ color: "#e53935", fontWeight: "bold", fontSize: "13px" }}>🟥 100 : {currentTheme.max}</span>
+              {/* 自動挿入されるPOPなイラスト(アイコン) */}
+              <div style={{ fontSize: "56px", margin: "15px 0 5px 0", animation: "bounce 2s infinite" }}>{currentTheme.icon || "🃏"}</div>
+              
+              <h2 style={{ margin: "0 0 20px 0", color: "#2d3436", fontSize: "26px", fontWeight: "900" }}>{currentTheme.title}</h2>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#f8f9fa", padding: "15px", borderRadius: "15px", border: "1px solid #eee" }}>
+                <div style={{ textAlign: "left" }}>
+                  <span style={{ color: "#0984e3", fontWeight: "bold", fontSize: "12px", display: "block" }}>🟦 1（一番低い）</span>
+                  <span style={{ fontSize: "14px", fontWeight: "bold" }}>{currentTheme.min}</span>
+                </div>
+                <div style={{ color: "#b2bec3", fontSize: "12px" }}>◀ 価値観の軸 ▶</div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: "#d63031", fontWeight: "bold", fontSize: "12px", display: "block" }}>🟥 100（一番高い）</span>
+                  <span style={{ fontSize: "14px", fontWeight: "bold" }}>{currentTheme.max}</span>
+                </div>
               </div>
             </div>
           ) : (
-            <p style={{ margin: "15px 0", fontSize: "18px", color: "#999", fontWeight: "bold" }}>ホストがお題を引くのを待っています...</p>
+            <div style={{ padding: "30px 0" }}>
+              <div style={{ fontSize: "48px", marginBottom: "10px" }}>🎲</div>
+              <p style={{ fontSize: "16px", color: "#999", fontWeight: "bold" }}>ホストがお題を決めるのを待っています...</p>
+            </div>
           )}
           
           {isHost && (
-            <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff758c"), marginTop: "15px", fontSize: "14px", padding: "8px 20px" }}>
-              {currentTheme ? "🔄 べつのお題を引く" : "🎲 お題をランダムで決める"}
+            <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff6b6b"), marginTop: "20px", fontSize: "14px", padding: "10px 24px" }}>
+              {currentTheme ? "🔄 べつのお題カードを引く" : "🎲 お題カードを山札から引く"}
             </button>
           )}
         </div>
         
-        {/* 自分の秘密の数字カード（ITOカード風デザイン） */}
-        <div style={{ ...cardStyle, background: "linear-gradient(135deg, #111 0%, #333 100%)", color: "white", textAlign: "center", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: "-20px", right: "-20px", width: "80px", height: "80px", background: "rgba(255,255,255,0.05)", borderRadius: "50%" }}></div>
-          <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "2px", opacity: 0.6 }}>Secret Number</span>
-          <h3 style={{ margin: "5px 0", fontSize: "16px" }}>あなたの秘密の数字</h3>
-          <div style={{ fontSize: "64px", fontWeight: "bold", color: "#ffd700", textShadow: "0 0 12px rgba(255,215,0,0.4)", margin: "10px 0" }}>
+        {/* 自分の秘密の数字カード */}
+        <div style={{ ...cardStyle, background: "linear-gradient(135deg, #2d3436 0%, #000000 100%)", color: "white", textAlign: "center", border: "3px solid #ffd700" }}>
+          <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#ffd700", fontWeight: "bold" }}>Your Secret Card</span>
+          <div style={{ fontSize: "68px", fontWeight: "900", color: "#ffd700", textShadow: "0 0 15px rgba(255,215,0,0.6)", margin: "5px 0" }}>
             {players[name]?.number}
           </div>
+          <p style={{ fontSize: "13px", color: "#dfe6e9", marginBottom: "15px" }}>この数字の大きさを例える「言葉」を入力して送信してね！</p>
           
-          <p style={{ fontSize: "13px", color: "#ccc", marginBottom: "12px" }}>数字の大きさを「言葉」に例えて全員に送信してください</p>
           <div style={{ display: "flex", gap: "10px" }}>
             <input
               type="text"
               value={myWord}
               onChange={(e) => setMyWord(e.target.value)}
-              placeholder="例：ドアノブの静電気"
-              style={{ padding: "12px", flex: 1, fontSize: "16px", borderRadius: "25px", border: "none", color: "#333" }}
+              placeholder="例：ギリギリ怒られない遅刻"
+              style={{ padding: "14px 20px", flex: 1, fontSize: "16px", borderRadius: "30px", border: "none", color: "#333", fontWeight: "bold" }}
             />
-            <button onClick={submitWord} style={{ padding: "0 25px", backgroundColor: "#ff4081", color: "white", border: "none", borderRadius: "25px", fontWeight: "bold", cursor: "pointer" }}>送信</button>
+            <button onClick={submitWord} style={buttonStyle("#ff4757")}>送信</button>
           </div>
+          {players[name]?.word && (
+            <div style={{ fontSize: "12px", color: "#2ed573", marginTop: "10px", fontWeight: "bold" }}>✔ 送信完了しました！</div>
+          )}
         </div>
 
         {/* みんなの並べ替えエリア */}
         <div style={cardStyle}>
-          <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🧩 みんなの並べ替えエリア</h3>
-          <p style={{ fontSize: "12px", color: "#888", margin: "0 0 15px 0" }}>💡 カードをドラッグして並び替えられます（全員に同期）</p>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#bbb", fontWeight: "bold", padding: "0 5px" }}>
-            <span>◀ 小さい（1に近い）</span>
-            <span>大きい（100に近い） ▶</span>
+          <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3436" }}>🧩 みんなの並べ替えボード</h3>
+          <p style={{ fontSize: "12px", color: "#74b9ff", margin: "0 0 15px 0", fontWeight: "bold" }}>💡 カードをドラッグして、数字が小さい順に並び替えよう！</p>
+          
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#b2bec3", fontWeight: "bold", marginBottom: "5px" }}>
+            <span>◀ 小さい (1)</span>
+            <span>大きい (100) ▶</span>
           </div>
           
-          <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "15px 5px", minHeight: "180px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "15px 5px", minHeight: "190px", alignItems: "center", backgroundColor: "#f1f2f6", borderRadius: "15px" }}>
             {board.map((playerName, index) => {
               const p = players[playerName];
               if (!p) return null;
@@ -350,34 +380,34 @@ export default function App() {
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, index)}
                   style={{
-                    borderRadius: "12px",
-                    width: "110px",
-                    minWidth: "110px",
-                    height: "150px",
-                    background: isRevealed ? "linear-gradient(135deg, #fff9c4 0%, #fff59d 100%)" : "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
-                    border: isRevealed ? "3px solid #fbc02d" : "2px solid #e0e0e0",
+                    borderRadius: "15px",
+                    width: "115px",
+                    minWidth: "115px",
+                    height: "160px",
+                    background: isRevealed ? "linear-gradient(135deg, #ffeaa7 0%, #ffd32c 100%)" : "#ffffff",
+                    border: isRevealed ? "3px solid #eccc68" : p.word ? "3px solid #ff6b6b" : "2px dashed #ccc",
                     padding: "10px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
                     cursor: revealIndex === -1 ? "grab" : "default",
-                    boxShadow: "0 6px 12px rgba(0,0,0,0.05)",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
                     transition: "all 0.2s"
                   }}
                 >
-                  <div style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", paddingBottom: "4px" }}>
-                    <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  <div style={{ borderBottom: "1px solid #eee", paddingBottom: "4px", textAlign: "center" }}>
+                    <div style={{ fontSize: "14px", fontWeight: "900", color: "#2d3436", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                   </div>
                   
-                  <div style={{ fontSize: "12px", color: p.word ? "#444" : "#bbb", fontWeight: p.word ? "bold" : "normal", textAlign: "center", wordBreak: "break-all", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 0" }}>
-                    {p.word || "入力待ち..."}
+                  <div style={{ fontSize: "13px", color: p.word ? "#2d3436" : "#b2bec3", fontWeight: "bold", textAlign: "center", wordBreak: "break-all", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 0" }}>
+                    {p.word || "考え中..."}
                   </div>
                   
-                  <div style={{ textAlign: "center", backgroundColor: isRevealed ? "#fbc02d" : "#eee", borderRadius: "6px", padding: "4px 0" }}>
+                  <div style={{ textAlign: "center", backgroundColor: isRevealed ? "#fff" : "#f1f2f6", borderRadius: "10px", padding: "6px 0" }}>
                     {isRevealed ? (
-                      <span style={{ fontSize: "22px", fontWeight: "bold", color: "#d32f2f" }}>{p.number}</span>
+                      <span style={{ fontSize: "24px", fontWeight: "900", color: "#ff4757" }}>{p.number}</span>
                     ) : (
-                      <span style={{ fontSize: "18px", fontWeight: "bold", color: "#aaa" }}>?</span>
+                      <span style={{ fontSize: "16px", fontWeight: "bold", color: "#a4b0be" }}>?</span>
                     )}
                   </div>
                 </div>
@@ -388,29 +418,29 @@ export default function App() {
 
         {/* ホスト専用の答え合わせパネル */}
         {isHost && (
-          <div style={{ ...cardStyle, backgroundColor: "#fff8e1", border: "2px solid #ffe082" }}>
-            <h3 style={{ margin: "0 0 10px 0", color: "#f57c00", fontSize: "16px" }}>👑 ホスト専用 進行コントローラー</h3>
+          <div style={{ ...cardStyle, backgroundColor: "#fff9db", border: "2px solid #fab005" }}>
+            <h3 style={{ margin: "0 0 10px 0", color: "#f57c00", fontSize: "16px", fontWeight: "bold" }}>👑 ホスト進行コントローラー</h3>
             
             {board.length === 0 ? (
-              <p style={{ color: "#888", fontSize: "13px" }}>参加者が入室するのを待っています...</p>
+              <p style={{ color: "#888", fontSize: "13px" }}>参加者がお部屋に入るのを待っています...</p>
             ) : revealIndex === -1 ? (
               <div>
-                <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>並び替えが終わったら、どちらからオープンするか全員に発表して選んでください：</p>
+                <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>全員の「言葉」が出揃い、並び替えが終わったらオープンしてください：</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#4caf50"), fontSize: "14px", flex: 1 }}>1（小さい順）から</button>
-                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#2196f3"), fontSize: "14px", flex: 1 }}>100（大きい順）から</button>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（小さい順）からめくる</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（大きい順）からめくる</button>
                 </div>
               </div>
             ) : (
               <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
                 <div style={{ fontSize: "14px", fontWeight: "bold", color: "#e65100" }}>
-                  📢 モード: {revealMode === "asc" ? "【小さい順】にオープン中！" : "【大きい順】にオープン中！"}
+                  📢 オープン中: {revealMode === "asc" ? "【小さい順】" : "【大きい順】"}
                 </div>
-                <button onClick={nextReveal} disabled={revealIndex >= board.length - 1} style={buttonStyle("#f57c00")}>
-                  {revealIndex >= board.length - 1 ? "🎉 すべてめくりました！" : "🔥 次のカードをめくる！"}
+                <button onClick={nextReveal} disabled={revealIndex >= board.length - 1} style={buttonStyle("#ff9f43")}>
+                  {revealIndex >= board.length - 1 ? "🎉 すべてオープンしました！" : "🔥 次のカードをめくる！"}
                 </button>
-                <button onClick={resetGame} style={{ padding: "6px", backgroundColor: "transparent", color: "#f44336", border: "1px solid #f44336", borderRadius: "20px", cursor: "pointer", marginTop: "10px", fontSize: "12px", fontWeight: "bold" }}>
-                  次ラウンドへ（部屋データをリセット）
+                <button onClick={resetGame} style={{ padding: "8px", backgroundColor: "transparent", color: "#ff4757", border: "1px solid #ff4757", borderRadius: "20px", cursor: "pointer", marginTop: "10px", fontSize: "12px", fontWeight: "bold" }}>
+                  次のゲームを始める（部屋のデータをリセット）
                 </button>
               </div>
             )}
