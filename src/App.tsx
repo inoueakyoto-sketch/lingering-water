@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ref, onValue, set } from "firebase/database";
 import { db } from "./firebase";
 
-// --- ito レインボー風 お題100選（イラスト用アイコン付き） ---
+// --- itoアプリ用 お題100選（イラスト用アイコン付き） ---
 const THEMES = [
   { title: "カバンに入っていたら嬉しいもの", min: "嬉しくない", max: "嬉しい", icon: "💼" },
   { title: "朝ごはんに食べたいもの", min: "食べたくない", max: "食べたい", icon: "🥞" },
@@ -43,7 +43,7 @@ const THEMES = [
   { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト", icon: "🍜" },
   { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい", icon: "⏳" },
   { title: "理想のプロポーズ", min: "最悪", max: "最高", icon: "💍" },
-  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ", icon: "⚖️" },
+  { title: "あったら嫌な法律", min: "まだ換せる", max: "絶対ムリ", icon: "⚖️" },
   { title: "自分の好きなところ", min: "ふつう", max: "大好き", icon: "❤️" },
   { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい", icon: "✈️" },
   { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい", icon: "✍️" },
@@ -85,6 +85,11 @@ export default function App() {
 
   const [myWord, setMyWord] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+
+  // --- オリジナルお題入力用のステート ---
+  const [customTitle, setCustomTitle] = useState("");
+  const [customMin, setCustomMin] = useState("");
+  const [customMax, setCustomMax] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -154,6 +159,24 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/theme`), THEMES[randomIndex]);
   };
 
+  // --- オリジナルお題を送信する処理 ---
+  const submitCustomTheme = () => {
+    if (!customTitle || !customMin || !customMax) {
+      return alert("お題、1の基準、100の基準をすべて入力してください！");
+    }
+    const newTheme = {
+      title: customTitle,
+      min: customMin,
+      max: customMax,
+      icon: "✍️" // オリジナルお題用のペンアイコン
+    };
+    set(ref(db, `rooms/${roomId}/theme`), newTheme);
+    // 入力欄をクリア
+    setCustomTitle("");
+    setCustomMin("");
+    setCustomMax("");
+  };
+
   const copyUrl = () => {
     navigator.clipboard.writeText(shareUrl);
     alert("このお部屋専用の招待URLをコピーしました！LINEなどで友達に送ってください。");
@@ -187,7 +210,6 @@ export default function App() {
     }
   };
 
-  // --- 提出状況を数えるロジック ---
   const totalPlayersCount = Object.keys(players).length;
   const submittedPlayersCount = Object.values(players).filter((p: any) => p.word !== "").length;
   const isAllSubmitted = totalPlayersCount > 0 && totalPlayersCount === submittedPlayersCount;
@@ -195,7 +217,7 @@ export default function App() {
   // --- 🎨 スタイル定義 ---
   const containerStyle: React.CSSProperties = {
     fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
-    background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", // よりPOPで温かみのある背景に
+    background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
     minHeight: "100vh",
     padding: "20px 15px",
     color: "#333",
@@ -223,11 +245,20 @@ export default function App() {
     transition: "all 0.2s"
   });
 
+  const inputStyle: React.CSSProperties = {
+    width: "94%",
+    padding: "10px",
+    fontSize: "15px",
+    borderRadius: "8px",
+    border: "2px solid #eee",
+    marginBottom: "10px"
+  };
+
   if (!isJoined) {
     return (
       <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
         <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "10px solid #ff6b6b" }}>
-          <h1 style={{ color: "#ff6b6b", fontSize: "36px", margin: "0 0 5px 0", fontWeight: 900, letterSpacing: "1px" }}>ito Rainbow</h1>
+          <h1 style={{ color: "#ff6b6b", fontSize: "36px", margin: "0 0 5px 0", fontWeight: 900, letterSpacing: "1px" }}>itoアプリ</h1>
           <p style={{ color: "#777", fontSize: "13px", marginBottom: "30px" }}>価値観のズレを楽しむ、ハラハラ協力ゲーム</p>
           
           <div style={{ textAlign: "left", marginBottom: "20px" }}>
@@ -237,7 +268,7 @@ export default function App() {
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
               placeholder="例: ぼくらのお部屋、room1"
-              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "10px", border: "2px solid #eee" }}
+              style={{ ...inputStyle, width: "94%" }}
             />
           </div>
 
@@ -248,7 +279,7 @@ export default function App() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: まーくん"
-              style={{ width: "94%", padding: "12px", fontSize: "16px", borderRadius: "10px", border: "2px solid #eee" }}
+              style={{ ...inputStyle, width: "94%" }}
             />
           </div>
 
@@ -293,15 +324,13 @@ export default function App() {
           </div>
         </div>
 
-        {/* お題表示エリア（POPなイラストアイコン入り） */}
-        <div style={{ ...cardStyle, background: "#fff", border: "3px solid #ff6b6b", textAlign: "center", position: "relative" }}>
+        {/* お題表示エリア */}
+        <div style={{ ...cardStyle, background: "#fff", border: "3px solid #ff6b6b", textAlign: "center" }}>
           <div style={{ backgroundColor: "#ff6b6b", color: "white", padding: "4px 14px", borderRadius: "15px", fontSize: "12px", fontWeight: "bold", display: "inline-block" }}>🎯 今回のお題</div>
           
           {currentTheme ? (
             <div>
-              {/* 自動挿入されるPOPなイラスト(アイコン) */}
-              <div style={{ fontSize: "56px", margin: "15px 0 5px 0", animation: "bounce 2s infinite" }}>{currentTheme.icon || "🃏"}</div>
-              
+              <div style={{ fontSize: "56px", margin: "15px 0 5px 0" }}>{currentTheme.icon || "🃏"}</div>
               <h2 style={{ margin: "0 0 20px 0", color: "#2d3436", fontSize: "26px", fontWeight: "900" }}>{currentTheme.title}</h2>
               
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#f8f9fa", padding: "15px", borderRadius: "15px", border: "1px solid #eee" }}>
@@ -323,10 +352,47 @@ export default function App() {
             </div>
           )}
           
+          {/* ホスト用お題選択コントローラー */}
           {isHost && (
-            <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff6b6b"), marginTop: "20px", fontSize: "14px", padding: "10px 24px" }}>
-              {currentTheme ? "🔄 べつのお題カードを引く" : "🎲 お題カードを山札から引く"}
-            </button>
+            <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee", textAlign: "left" }}>
+              <h4 style={{ margin: "0 0 10px 0", color: "#e65100" }}>⚙️ お題の変更設定（ホスト専用）</h4>
+              
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
+                <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff6b6b"), fontSize: "14px", padding: "10px 24px", width: "100%" }}>
+                  🎲 100種類の山札からランダムに引く
+                </button>
+              </div>
+
+              <div style={{ backgroundColor: "#fdf2e9", padding: "12px", borderRadius: "10px", border: "1px solid #f5cba7" }}>
+                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#d35400", display: "block", marginBottom: "8px" }}>✏️ その場でオリジナルお題を作る</span>
+                <input 
+                  type="text" 
+                  placeholder="お題（例：ゾンビに勝てそうな有名人）" 
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  style={{ ...inputStyle, width: "93%" }}
+                />
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <input 
+                    type="text" 
+                    placeholder="1 の基準（例：絶対すぐやられる）" 
+                    value={customMin}
+                    onChange={(e) => setCustomMin(e.target.value)}
+                    style={{ ...inputStyle, width: "45%" }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="100 の基準（例：1人で世界を救う）" 
+                    value={customMax}
+                    onChange={(e) => setCustomMax(e.target.value)}
+                    style={{ ...inputStyle, width: "45%" }}
+                  />
+                </div>
+                <button onClick={submitCustomTheme} style={{ ...buttonStyle("#e65100"), fontSize: "13px", padding: "8px 15px", width: "100%", borderRadius: "8px" }}>
+                  ✍️ 作成したお題を全員に適用する
+                </button>
+              </div>
+            </div>
           )}
         </div>
         
@@ -427,8 +493,8 @@ export default function App() {
               <div>
                 <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>全員の「言葉」が出揃い、並び替えが終わったらオープンしてください：</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（小さい順）からめくる</button>
-                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（大きい順）からめくる</button>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（smaller）から順にめくる</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（larger）から順にめくる</button>
                 </div>
               </div>
             ) : (
