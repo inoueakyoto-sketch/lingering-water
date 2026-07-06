@@ -43,7 +43,7 @@ const THEMES = [
   { title: "美味しいラーメンのトッピング", min: "いらない", max: "マスト", icon: "🍜" },
   { title: "タイムスリップするなら", min: "行きたくない", max: "絶対行きたい", icon: "⏳" },
   { title: "理想のプロポーズ", min: "最悪", max: "最高", icon: "💍" },
-  { title: "あったら嫌な法律", min: "まだ換せる", max: "絶対ムリ", icon: "⚖️" },
+  { title: "あったら嫌な法律", min: "まだ許せる", max: "絶対ムリ", icon: "⚖️" },
   { title: "自分の好きなところ", min: "ふつう", max: "大好き", icon: "❤️" },
   { title: "旅行で行きたい国", min: "行きたくない", max: "絶対行きたい", icon: "✈️" },
   { title: "かっこいい漢字一文字", min: "ダサい", max: "超かっこいい", icon: "✍️" },
@@ -86,10 +86,40 @@ export default function App() {
   const [myWord, setMyWord] = useState("");
   const [shareUrl, setShareUrl] = useState("");
 
-  // --- オリジナルお題入力用のステート ---
   const [customTitle, setCustomTitle] = useState("");
   const [customMin, setCustomMin] = useState("");
   const [customMax, setCustomMax] = useState("");
+
+  // アニメーション用CSSの注入
+  useEffect(() => {
+    const styleId = "ito-animation-styles";
+    if (!document.getElementById(styleId)) {
+      const styleNode = document.createElement("style");
+      styleNode.id = styleId;
+      styleNode.innerHTML = `
+        @keyframes ito-flip {
+          0% { transform: rotateY(0deg); }
+          50% { transform: rotateY(90deg); filter: brightness(1.5); }
+          100% { transform: rotateY(0deg); }
+        }
+        @keyframes ito-bounce {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-8px) scale(1.03); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+        }
+        @keyframes ito-glow {
+          0%, 100% { box-shadow: 0 0 15px rgba(255, 71, 87, 0.4); }
+          50% { box-shadow: 0 0 30px rgba(255, 71, 87, 0.8); }
+        }
+        .animate-flip {
+          animation: ito-flip 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .animate-active-card {
+          animation: ito-bounce 2s ease-in-out infinite, ito-glow 2s ease-in-out infinite;
+        }
+      `;
+      document.head.appendChild(styleNode);
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -159,7 +189,6 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/theme`), THEMES[randomIndex]);
   };
 
-  // --- オリジナルお題を送信する処理 ---
   const submitCustomTheme = () => {
     if (!customTitle || !customMin || !customMax) {
       return alert("お題、1の基準、100の基準をすべて入力してください！");
@@ -168,10 +197,9 @@ export default function App() {
       title: customTitle,
       min: customMin,
       max: customMax,
-      icon: "✍️" // オリジナルお題用のペンアイコン
+      icon: "✍️"
     };
     set(ref(db, `rooms/${roomId}/theme`), newTheme);
-    // 入力欄をクリア
     setCustomTitle("");
     setCustomMin("");
     setCustomMax("");
@@ -352,7 +380,6 @@ export default function App() {
             </div>
           )}
           
-          {/* ホスト用お題選択コントローラー */}
           {isHost && (
             <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee", textAlign: "left" }}>
               <h4 style={{ margin: "0 0 10px 0", color: "#e65100" }}>⚙️ お題の変更設定（ホスト専用）</h4>
@@ -429,14 +456,26 @@ export default function App() {
             <span>大きい (100) ▶</span>
           </div>
           
-          <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "15px 5px", minHeight: "190px", alignItems: "center", backgroundColor: "#f1f2f6", borderRadius: "15px" }}>
+          <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "20px 5px", minHeight: "210px", alignItems: "center", backgroundColor: "#f1f2f6", borderRadius: "15px" }}>
             {board.map((playerName, index) => {
               const p = players[playerName];
               if (!p) return null;
               
+              // 現在めくられているカードかどうかを判定
               let isRevealed = false;
-              if (revealMode === "asc" && index <= revealIndex) isRevealed = true;
-              if (revealMode === "desc" && (board.length - 1 - index) <= revealIndex) isRevealed = true;
+              let isJustRevealed = false; // まさに今めくられたカードか
+
+              if (revealMode === "asc") {
+                if (index <= revealIndex) isRevealed = true;
+                if (index === revealIndex) isJustRevealed = true;
+              } else {
+                if ((board.length - 1 - index) <= revealIndex) isRevealed = true;
+                if ((board.length - 1 - index) === revealIndex) isJustRevealed = true;
+              }
+
+              // 数字に応じたグラデーションカラー（1に近いほど青、100に近いほど鮮やかな赤）
+              const num = p.number || 50;
+              const revealedCardBg = `linear-gradient(135deg, rgb(${Math.floor(200 + num * 0.55)}, ${Math.floor(250 - num * 2)}, ${Math.floor(255 - num * 2)}) 0%, rgb(${Math.floor(255)}, ${Math.floor(230 - num * 1.5)}, ${Math.floor(150 - num * 1.2)}) 100%)`;
 
               return (
                 <div
@@ -445,35 +484,48 @@ export default function App() {
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, index)}
+                  className={`${isJustRevealed ? "animate-flip" : ""} ${isJustRevealed ? "animate-active-card" : ""}`}
                   style={{
                     borderRadius: "15px",
                     width: "115px",
                     minWidth: "115px",
-                    height: "160px",
-                    background: isRevealed ? "linear-gradient(135deg, #ffeaa7 0%, #ffd32c 100%)" : "#ffffff",
-                    border: isRevealed ? "3px solid #eccc68" : p.word ? "3px solid #ff6b6b" : "2px dashed #ccc",
+                    height: "170px",
+                    background: isRevealed ? revealedCardBg : "#ffffff",
+                    border: isJustRevealed 
+                      ? "4px solid #ff4757" 
+                      : isRevealed 
+                        ? "2px solid #ffa502" 
+                        : p.word 
+                          ? "3px solid #ff6b6b" 
+                          : "2px dashed #ccc",
                     padding: "10px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
                     cursor: revealIndex === -1 ? "grab" : "default",
-                    boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
-                    transition: "all 0.2s"
+                    boxShadow: isJustRevealed 
+                      ? "0 20px 35px rgba(255, 71, 87, 0.4)" 
+                      : isRevealed 
+                        ? "0 6px 12px rgba(0,0,0,0.08)" 
+                        : "0 8px 16px rgba(0,0,0,0.05)",
+                    transform: isJustRevealed ? "scale(1.08)" : "scale(1)",
+                    zIndex: isJustRevealed ? 10 : 1,
+                    transition: "all 0.3s ease",
                   }}
                 >
-                  <div style={{ borderBottom: "1px solid #eee", paddingBottom: "4px", textAlign: "center" }}>
-                    <div style={{ fontSize: "14px", fontWeight: "900", color: "#2d3436", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  <div style={{ borderBottom: "1px solid rgba(0,0,0,0.05)", paddingBottom: "4px", textAlign: "center" }}>
+                    <div style={{ fontSize: "14px", fontWeight: "900", color: isRevealed ? "#1e272e" : "#2d3436", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                   </div>
                   
                   <div style={{ fontSize: "13px", color: p.word ? "#2d3436" : "#b2bec3", fontWeight: "bold", textAlign: "center", wordBreak: "break-all", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 0" }}>
                     {p.word || "考え中..."}
                   </div>
                   
-                  <div style={{ textAlign: "center", backgroundColor: isRevealed ? "#fff" : "#f1f2f6", borderRadius: "10px", padding: "6px 0" }}>
+                  <div style={{ textAlign: "center", backgroundColor: isRevealed ? "rgba(255,255,255,0.7)" : "#f1f2f6", borderRadius: "10px", padding: "6px 0", border: isRevealed ? "1px solid rgba(0,0,0,0.05)" : "none" }}>
                     {isRevealed ? (
-                      <span style={{ fontSize: "24px", fontWeight: "900", color: "#ff4757" }}>{p.number}</span>
+                      <span style={{ fontSize: "26px", fontWeight: "900", color: num > 75 ? "#ff4757" : num < 25 ? "#2f3542" : "#ff6b81", textShadow: "1px 1px 0px white" }}>{p.number}</span>
                     ) : (
-                      <span style={{ fontSize: "16px", fontWeight: "bold", color: "#a4b0be" }}>?</span>
+                      <span style={{ fontSize: "18px", fontWeight: "bold", color: "#a4b0be" }}>?</span>
                     )}
                   </div>
                 </div>
@@ -493,8 +545,8 @@ export default function App() {
               <div>
                 <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>全員の「言葉」が出揃い、並び替えが終わったらオープンしてください：</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（smaller）から順にめくる</button>
-                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（larger）から順にめくる</button>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（小さい順）からめくる</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（大きい順）からめくる</button>
                 </div>
               </div>
             ) : (
