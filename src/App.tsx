@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ref, onValue, set } from "firebase/database";
+// @ts-ignore
 import { db } from "./firebase";
 
 // --- ito レインボー風 お題100選（1と100の基準付き） ---
