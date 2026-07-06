@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ref, onValue, set, remove } from "firebase/database";
+import React, { useState, useEffect, useRef } from "react";
+import { ref, onValue, set, remove, push } from "firebase/database";
 import { db } from "./firebase";
 
 // --- itoアプリ用 お題100選（イラスト用アイコン付き） ---
@@ -90,6 +90,11 @@ export default function App() {
   const [customMin, setCustomMin] = useState("");
   const [customMax, setCustomMax] = useState("");
 
+  // --- チャット用ステート ---
+  const [chatList, setChatList] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null); // 自動スクロール用
+
   useEffect(() => {
     const styleId = "ito-animation-styles";
     if (!document.getElementById(styleId)) {
@@ -157,7 +162,25 @@ export default function App() {
     onValue(themeRef, (snapshot) => {
       setCurrentTheme(snapshot.val() || null);
     });
+
+    // --- チャットデータのリアルタイム同期を取得 ---
+    const chatRef = ref(db, `rooms/${roomId}/chats`);
+    onValue(chatRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // オブジェクト形式を配列形式に変換
+        const loadedChats = Object.values(data);
+        setChatList(loadedChats);
+      } else {
+        setChatList([]);
+      }
+    });
   }, [roomId]);
+
+  // 新しいチャットが来たら自動で一番下へスクロール
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatList]);
 
   const joinGame = (hostFlag: boolean) => {
     if (roomId === "") return alert("部屋の名前（合言葉）を入力してください！");
@@ -178,14 +201,12 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/board`), newBoard);
   };
 
-  // --- TOP画面用の緊急リセット処理 ---
   const forceResetRoomFromTop = () => {
     if (roomId === "") return alert("リセットしたい部屋の名前（合言葉）を入力してください！");
     if (window.confirm(`「${roomId}」のお部屋データを完全に初期化しますか？\n（動かなくなった場合の救急用ボタンです）`)) {
       remove(ref(db, `rooms/${roomId}`))
         .then(() => {
           alert(`「${roomId}」の部屋データをクリアしました。最初から新しく遊べます！`);
-          // 招待用URLのパラメータをクリアして真っ新なトップへ
           window.location.href = window.location.origin + window.location.pathname;
         })
         .catch((err) => {
@@ -220,6 +241,19 @@ export default function App() {
     setCustomMax("");
   };
 
+  // --- チャットを送信する処理 ---
+  const sendChatMessage = () => {
+    if (!chatInput.trim()) return;
+    const chatRef = ref(db, `rooms/${roomId}/chats`);
+    const newChatRef = push(chatRef); // 自動で新しいIDを発行して追加
+    set(newChatRef, {
+      sender: name,
+      text: chatInput,
+      timestamp: Date.now()
+    });
+    setChatInput(""); // 入力欄をクリア
+  };
+
   const copyUrl = () => {
     navigator.clipboard.writeText(shareUrl);
     alert("このお部屋専用の招待URLをコピーしました！LINEなどで友達に送ってください。");
@@ -247,7 +281,7 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/reveal/index`), revealIndex + 1);
   };
   const resetGame = () => {
-    if (window.confirm("ゲームをリセットして次のラウンドへ進みますか？")) {
+    if (window.confirm("ゲームをリセットして次のラウンドへ進みますか？\n（チャット履歴もリセットされます）")) {
       set(ref(db, `rooms/${roomId}`), null);
       window.location.href = shareUrl;
     }
@@ -262,7 +296,7 @@ export default function App() {
     fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
     background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
     minHeight: "100vh",
-    padding: "20px 15px",
+    padding: "20px 15px 40px 15px", // 下部に余裕を持たせる
     color: "#333",
   };
 
@@ -297,7 +331,7 @@ export default function App() {
     marginBottom: "10px"
   };
 
-  // ================= TOP画面（ログイン・リセット） =================
+  // ================= TOP画面 =================
   if (!isJoined) {
     return (
       <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -331,23 +365,9 @@ export default function App() {
             <button onClick={() => joinGame(true)} style={buttonStyle("#ff9f43")}>👑 部屋を作って参加（ホスト）</button>
             <button onClick={() => joinGame(false)} style={buttonStyle("#10ac84")}>👤 この部屋に参加（ゲスト）</button>
             
-            {/* 🚨 追加：緊急部屋データリセットボタン */}
             <div style={{ marginTop: "15px", paddingTop: "15px", borderTop: "1px dashed #eee" }}>
               <p style={{ fontSize: "11px", color: "#999", margin: "0 0 8px 0" }}>⚠️ ホストがいなくなって動かなくなった時は：</p>
-              <button 
-                onClick={forceResetRoomFromTop} 
-                style={{ 
-                  backgroundColor: "transparent", 
-                  color: "#ff4757", 
-                  border: "1px solid #ff4757", 
-                  borderRadius: "20px", 
-                  padding: "6px 15px", 
-                  fontSize: "12px", 
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  width: "100%"
-                }}
-              >
+              <button onClick={forceResetRoomFromTop} style={{ backgroundColor: "transparent", color: "#ff4757", border: "1px solid #ff4757", borderRadius: "20px", padding: "6px 15px", fontSize: "12px", cursor: "pointer", fontWeight: "bold", width: "100%" }}>
                 🔄 部屋のデータを強制リセットする
               </button>
             </div>
@@ -430,28 +450,10 @@ export default function App() {
 
               <div style={{ backgroundColor: "#fdf2e9", padding: "12px", borderRadius: "10px", border: "1px solid #f5cba7" }}>
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#d35400", display: "block", marginBottom: "8px" }}>✏️ その場でオリジナルお題を作る</span>
-                <input 
-                  type="text" 
-                  placeholder="お題（例：ゾンビに勝てそうな有名人）" 
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  style={{ ...inputStyle, width: "93%" }}
-                />
+                <input type="text" placeholder="お題（例：ゾンビに勝てそうな有名人）" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} style={{ ...inputStyle, width: "93%" }} />
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <input 
-                    type="text" 
-                    placeholder="1 の基準（例：絶対すぐやられる）" 
-                    value={customMin}
-                    onChange={(e) => setCustomMin(e.target.value)}
-                    style={{ ...inputStyle, width: "45%" }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="100 の基準（例：1人で世界を救う）" 
-                    value={customMax}
-                    onChange={(e) => setCustomMax(e.target.value)}
-                    style={{ ...inputStyle, width: "45%" }}
-                  />
+                  <input type="text" placeholder="1 の基準（例：絶対すぐやられる）" value={customMin} onChange={(e) => setCustomMin(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
+                  <input type="text" placeholder="100 の基準（例：1人で世界を救う）" value={customMax} onChange={(e) => setCustomMax(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
                 </div>
                 <button onClick={submitCustomTheme} style={{ ...buttonStyle("#e65100"), fontSize: "13px", padding: "8px 15px", width: "100%", borderRadius: "8px" }}>
                   ✍️ 作成したお題を全員に適用する
@@ -470,13 +472,7 @@ export default function App() {
           <p style={{ fontSize: "13px", color: "#dfe6e9", marginBottom: "15px" }}>この数字の大きさを例える「言葉」を入力して送信してね！</p>
           
           <div style={{ display: "flex", gap: "10px" }}>
-            <input
-              type="text"
-              value={myWord}
-              onChange={(e) => setMyWord(e.target.value)}
-              placeholder="例：ギリギリ怒られない遅刻"
-              style={{ padding: "14px 20px", flex: 1, fontSize: "16px", borderRadius: "30px", border: "none", color: "#333", fontWeight: "bold" }}
-            />
+            <input type="text" value={myWord} onChange={(e) => setMyWord(e.target.value)} placeholder="例：ギリギリ怒られない遅刻" style={{ padding: "14px 20px", flex: 1, fontSize: "16px", borderRadius: "30px", border: "none", color: "#333", fontWeight: "bold" }} />
             <button onClick={submitWord} style={buttonStyle("#ff4757")}>送信</button>
           </div>
           {players[name]?.word && (
@@ -489,7 +485,7 @@ export default function App() {
           <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3436" }}>🧩 みんなの並べ替えボード</h3>
           <p style={{ fontSize: "12px", color: "#74b9ff", margin: "0 0 15px 0", fontWeight: "bold" }}>💡 カードをドラッグして、数字が小さい順に並び替えよう！</p>
           
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#b2bec3", fontWeight: "bold", marginBottom: "5px" }}>
+          <div style={{ display: "flex", justify穗ontent: "space-between", fontSize: "11px", color: "#b2bec3", fontWeight: "bold", marginBottom: "5px" }}>
             <span>◀ 小さい (1)</span>
             <span>大きい (100) ▶</span>
           </div>
@@ -527,23 +523,13 @@ export default function App() {
                     minWidth: "115px",
                     height: "170px",
                     background: isRevealed ? revealedCardBg : "#ffffff",
-                    border: isJustRevealed 
-                      ? "4px solid #ff4757" 
-                      : isRevealed 
-                        ? "2px solid #ffa502" 
-                        : p.word 
-                          ? "3px solid #ff6b6b" 
-                          : "2px dashed #ccc",
+                    border: isJustRevealed ? "4px solid #ff4757" : isRevealed ? "2px solid #ffa502" : p.word ? "3px solid #ff6b6b" : "2px dashed #ccc",
                     padding: "10px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
                     cursor: revealIndex === -1 ? "grab" : "default",
-                    boxShadow: isJustRevealed 
-                      ? "0 20px 35px rgba(255, 71, 87, 0.4)" 
-                      : isRevealed 
-                        ? "0 6px 12px rgba(0,0,0,0.08)" 
-                        : "0 8px 16px rgba(0,0,0,0.05)",
+                    boxShadow: isJustRevealed ? "0 20px 35px rgba(255, 71, 87, 0.4)" : isRevealed ? "0 6px 12px rgba(0,0,0,0.08)" : "0 8px 16px rgba(0,0,0,0.05)",
                     transform: isJustRevealed ? "scale(1.08)" : "scale(1)",
                     zIndex: isJustRevealed ? 10 : 1,
                     transition: "all 0.3s ease",
@@ -567,6 +553,73 @@ export default function App() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* 💬 追加：リアルタイムゲーム内チャットボード */}
+        <div style={{ ...cardStyle, border: "2px solid #54a0ff", padding: "15px" }}>
+          <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", fontWeight: "900", color: "#2d3436", display: "flex", alignItems: "center", gap: "5px" }}>
+            💬 お部屋のチャット欄 <span style={{ fontSize: "11px", color: "#74b9ff", fontWeight: "normal" }}>※次のゲームへ進むとクリアされます</span>
+          </h3>
+          
+          {/* メッセージ履歴エリア */}
+          <div style={{ 
+            height: "150px", 
+            overflowY: "auto", 
+            backgroundColor: "#f1f2f6", 
+            borderRadius: "10px", 
+            padding: "10px", 
+            marginBottom: "10px",
+            fontSize: "14px"
+          }}>
+            {chatList.length === 0 ? (
+              <p style={{ color: "#aaa", textAlign: "center", marginTop: "50px", fontSize: "12px" }}>「私は中くらいかな」「結構自信ある！」などヒントを会話しよう！</p>
+            ) : (
+              chatList.map((chat, idx) => {
+                const isMe = chat.sender === name;
+                return (
+                  <div key={idx} style={{ marginBottom: "8px", textAlign: isMe ? "right" : "left" }}>
+                    <span style={{ 
+                      fontSize: "11px", 
+                      color: isMe ? "#10ac84" : "#54a0ff", 
+                      fontWeight: "bold", 
+                      display: "block",
+                      marginBottom: "2px"
+                    }}>
+                      {chat.sender}
+                    </span>
+                    <span style={{ 
+                      backgroundColor: isMe ? "#1dd1a1" : "#fff", 
+                      color: isMe ? "#fff" : "#333",
+                      padding: "6px 12px", 
+                      borderRadius: "12px", 
+                      display: "inline-block",
+                      maxWidth: "75%",
+                      wordBreak: "break-all",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                      textAlign: "left",
+                      fontWeight: "bold"
+                    }}>
+                      {chat.text}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatEndRef} /> {/* ここめがけて自動スクロール */}
+          </div>
+
+          {/* 入力フォーム */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input 
+              type="text" 
+              placeholder="ここにメッセージを入力..." 
+              value={chatInput} 
+              onChange={(e) => setChatInput(e.target.value)} 
+              onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }} // Enterキーでも送信可能に
+              style={{ padding: "10px 15px", flex: 1, fontSize: "14px", borderRadius: "20px", border: "2px solid #eee", outline: "none" }}
+            />
+            <button onClick={sendChatMessage} style={{ ...buttonStyle("#54a0ff"), padding: "0 20px", fontSize: "14px" }}>送信</button>
           </div>
         </div>
 
