@@ -94,7 +94,6 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // 全部屋の監視（TOP画面用）
   useEffect(() => {
     const roomsRef = ref(db, "rooms");
     onValue(roomsRef, (snapshot) => {
@@ -102,7 +101,6 @@ export default function App() {
     });
   }, []);
 
-  // アニメーション用CSSの注入
   useEffect(() => {
     const styleId = "ito-animation-styles";
     if (!document.getElementById(styleId)) {
@@ -133,14 +131,12 @@ export default function App() {
     }
   }, []);
 
-  // URLパラメータからの読み込み
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlRoom = params.get("room");
     if (urlRoom) setRoomId(urlRoom);
   }, []);
 
-  // 選択された部屋データの監視
   useEffect(() => {
     if (!roomId) return;
 
@@ -287,10 +283,32 @@ export default function App() {
   const nextReveal = () => {
     set(ref(db, `rooms/${roomId}/reveal/index`), revealIndex + 1);
   };
+
+  // --- 🔄 メンバー維持のまま次ラウンドへ進むリセット処理 ---
   const resetGame = () => {
-    if (window.confirm("ゲームをリセットして次のラウンドへ進みますか？\n（チャット履歴もリセットされます）")) {
-      set(ref(db, `rooms/${roomId}`), null);
-      window.location.href = shareUrl;
+    if (window.confirm("現在のメンバーを維持したまま、次のゲーム（カード再配布）を始めますか？")) {
+      // 1. 各プレイヤーの「数字」のみ新しく抽選し、「言葉」を空っぽにするオブジェクトを作る
+      const updatedPlayers: any = {};
+      Object.keys(players).forEach((pName) => {
+        updatedPlayers[pName] = {
+          name: pName,
+          number: Math.floor(Math.random() * 100) + 1, // 新しいカードの再配布
+          word: "" // 言葉のリセット
+        };
+      });
+
+      // 2. Firebaseの各データをまとめて更新・リセットする
+      set(ref(db, `rooms/${roomId}/players`), updatedPlayers); // メンバー維持のまま再配布
+      set(ref(db, `rooms/${roomId}/reveal`), null);            // めくり状況リセット
+      set(ref(db, `rooms/${roomId}/theme`), null);             // お題リセット
+      set(ref(db, `rooms/${roomId}/chats`), null);             // チャットリセット
+      
+      // 3. ボードの初期並び順を現在のプレイヤー名リストでシャッフル（再配置）
+      set(ref(db, `rooms/${roomId}/board`), Object.keys(updatedPlayers));
+      
+      // 4. 入力中の自分の言葉のテキストボックスを空にする
+      setMyWord("");
+      alert("カードを新しく配り直しました！ホストがお題を決めたらスタートです。");
     }
   };
 
@@ -374,7 +392,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* 🏢 部屋一覧管理ボード（追加部分） */}
         <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", borderTop: "6px solid #54a0ff" }}>
           <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", color: "#2d3436", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
             🏢 現在稼働中の部屋一覧 ({activeRoomList.length})
@@ -496,8 +513,8 @@ export default function App() {
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#d35400", display: "block", marginBottom: "8px" }}>✏️ その場でオリジナルお題を作る</span>
                 <input type="text" placeholder="お題（例：ゾンビに勝てそうな有名人）" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} style={{ ...inputStyle, width: "93%" }} />
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <input type="text" placeholder="1 の基準（例：絶対すぐやられる）" value={customMin} onChange={(e) => setCustomMin(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
-                  <input type="text" placeholder="100 の基準（例：1人で世界を救う）" value={customMax} onChange={(e) => setCustomMax(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
+                  <input type="text" placeholder="1 の基準（例：absolute min）" value={customMin} onChange={(e) => setCustomMin(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
+                  <input type="text" placeholder="100 の基準（例：absolute max）" value={customMax} onChange={(e) => setCustomMax(e.target.value)} style={{ ...inputStyle, width: "45%" }} />
                 </div>
                 <button onClick={submitCustomTheme} style={{ ...buttonStyle("#e65100"), fontSize: "13px", padding: "8px 15px", width: "100%", borderRadius: "8px" }}>
                   ✍️ 作成したお題を全員に適用する
@@ -507,6 +524,7 @@ export default function App() {
           )}
         </div>
         
+        {/* 自分の秘密の数字カード */}
         <div style={{ ...cardStyle, background: "linear-gradient(135deg, #2d3436 0%, #000000 100%)", color: "white", textAlign: "center", border: "3px solid #ffd700" }}>
           <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#ffd700", fontWeight: "bold" }}>Your Secret Card</span>
           <div style={{ fontSize: "68px", fontWeight: "900", color: "#ffd700", textShadow: "0 0 15px rgba(255,215,0,0.6)", margin: "5px 0" }}>
@@ -523,6 +541,7 @@ export default function App() {
           )}
         </div>
 
+        {/* みんなの並べ替えエリア */}
         <div style={cardStyle}>
           <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3436" }}>🧩 みんなの並べ替えボード</h3>
           <p style={{ fontSize: "12px", color: "#74b9ff", margin: "0 0 15px 0", fontWeight: "bold" }}>💡 カードをドラッグして、数字が小さい順に並び替えよう！</p>
@@ -672,8 +691,8 @@ export default function App() {
               <div>
                 <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>全員の「言葉」が出揃い、並び替えが終わったらオープンしてください：</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（小さい順）からめくる</button>
-                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（大きい順）からめくる</button>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（smaller）からめくる</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（larger）からめくる</button>
                 </div>
               </div>
             ) : (
@@ -685,7 +704,7 @@ export default function App() {
                   {revealIndex >= board.length - 1 ? "🎉 すべてオープンしました！" : "🔥 次のカードをめくる！"}
                 </button>
                 <button onClick={resetGame} style={{ padding: "8px", backgroundColor: "transparent", color: "#ff4757", border: "1px solid #ff4757", borderRadius: "20px", cursor: "pointer", marginTop: "10px", fontSize: "12px", fontWeight: "bold" }}>
-                  次のゲームを始める（部屋のデータをリセット）
+                  次のゲームを始める（部屋のメンバーそのままで再配布）
                 </button>
               </div>
             )}
