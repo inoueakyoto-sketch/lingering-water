@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ref, onValue, set, remove, push } from "firebase/database";
 import { db } from "./firebase";
 
-// --- itoアプリ用 お題100選（イラスト用アイコン付き） ---
+// --- itoアプリ用 お題100選 ---
 const THEMES = [
   { title: "カバンに入っていたら嬉しいもの", min: "嬉しくない", max: "嬉しい", icon: "💼" },
   { title: "朝ごはんに食べたいもの", min: "食べたくない", max: "食べたい", icon: "🥞" },
@@ -50,7 +50,6 @@ const THEMES = [
   { title: "理想の休日", min: "退屈", max: "最高", icon: "🛌" },
   { title: "なってみたい生き物", min: "なりたくない", max: "絶対なりたい", icon: "🦅" },
   { title: "憧れの有名人", min: "憧れない", max: "超憧れる", icon: "⭐" },
-  { title: "泣けるシチュエーション", min: "泣けない", max: "😭" },
   { title: "100万円あったら何に使う？", min: "しょうもない", max: "有意義", icon: "💰" },
   { title: "最高のごちそう", min: "ふつう", max: "最高", icon: "🥩" },
   { title: "秘密基地に置きたいもの", min: "いらない", max: "絶対置きたい", icon: "⛺" },
@@ -77,6 +76,7 @@ export default function App() {
   const [isJoined, setIsJoined] = useState(false);
   const [isHost, setIsHost] = useState(false);
   
+  const [allRooms, setAllRooms] = useState<any>({});
   const [players, setPlayers] = useState<any>({});
   const [board, setBoard] = useState<string[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
@@ -94,6 +94,15 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // 全部屋の監視（TOP画面用）
+  useEffect(() => {
+    const roomsRef = ref(db, "rooms");
+    onValue(roomsRef, (snapshot) => {
+      setAllRooms(snapshot.val() || {});
+    });
+  }, []);
+
+  // アニメーション用CSSの注入
   useEffect(() => {
     const styleId = "ito-animation-styles";
     if (!document.getElementById(styleId)) {
@@ -124,12 +133,14 @@ export default function App() {
     }
   }, []);
 
+  // URLパラメータからの読み込み
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlRoom = params.get("room");
     if (urlRoom) setRoomId(urlRoom);
   }, []);
 
+  // 選択された部屋データの監視
   useEffect(() => {
     if (!roomId) return;
 
@@ -166,8 +177,7 @@ export default function App() {
     onValue(chatRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const loadedChats = Object.values(data);
-        setChatList(loadedChats);
+        setChatList(Object.values(data));
       } else {
         setChatList([]);
       }
@@ -197,13 +207,15 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/board`), newBoard);
   };
 
-  const forceResetRoomFromTop = () => {
-    if (roomId === "") return alert("リセットしたい部屋の名前（合言葉）を入力してください！");
-    if (window.confirm(`「${roomId}」のお部屋データを完全に初期化しますか？\n（動かなくなった場合の救急用ボタンです）`)) {
-      remove(ref(db, `rooms/${roomId}`))
+  const forceResetRoomFromTop = (targetRoomId: string) => {
+    if (!targetRoomId) return alert("お部屋の名前がありません。");
+    if (window.confirm(`「${targetRoomId}」のお部屋データを完全に初期化しますか？\n（動かなくなった場合の救急用ボタンです）`)) {
+      remove(ref(db, `rooms/${targetRoomId}`))
         .then(() => {
-          alert(`「${roomId}」の部屋データをクリアしました。最初から新しく遊べます！`);
-          window.location.href = window.location.origin + window.location.pathname;
+          alert(`「${targetRoomId}」の部屋データをクリアしました。`);
+          if (roomId === targetRoomId) {
+            window.location.href = window.location.origin + window.location.pathname;
+          }
         })
         .catch((err) => {
           alert("エラーが発生しました: " + err.message);
@@ -326,9 +338,11 @@ export default function App() {
   };
 
   if (!isJoined) {
+    const activeRoomList = Object.keys(allRooms);
+
     return (
-      <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "10px solid #ff6b6b" }}>
+      <div style={{ ...containerStyle, display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column", gap: "20px" }}>
+        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", textAlign: "center", borderTop: "10px solid #ff6b6b", marginBottom: "0px" }}>
           <h1 style={{ color: "#ff6b6b", fontSize: "36px", margin: "0 0 5px 0", fontWeight: 900, letterSpacing: "1px" }}>itoアプリ</h1>
           <p style={{ color: "#777", fontSize: "13px", marginBottom: "30px" }}>価値観のズレを楽しむ、ハラハラ協力ゲーム</p>
           
@@ -357,13 +371,54 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
             <button onClick={() => joinGame(true)} style={buttonStyle("#ff9f43")}>👑 部屋を作って参加（ホスト）</button>
             <button onClick={() => joinGame(false)} style={buttonStyle("#10ac84")}>👤 この部屋に参加（ゲスト）</button>
-            
-            <div style={{ marginTop: "15px", paddingTop: "15px", borderTop: "1px dashed #eee" }}>
-              <p style={{ fontSize: "11px", color: "#999", margin: "0 0 8px 0" }}>⚠️ ホストがいなくなって動かなくなった時は：</p>
-              <button onClick={forceResetRoomFromTop} style={{ backgroundColor: "transparent", color: "#ff4757", border: "1px solid #ff4757", borderRadius: "20px", padding: "6px 15px", fontSize: "12px", cursor: "pointer", fontWeight: "bold", width: "100%" }}>
-                🔄 部屋のデータを強制リセットする
-              </button>
-            </div>
+          </div>
+        </div>
+
+        {/* 🏢 部屋一覧管理ボード（追加部分） */}
+        <div style={{ ...cardStyle, maxWidth: "420px", width: "100%", borderTop: "6px solid #54a0ff" }}>
+          <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", color: "#2d3436", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+            🏢 現在稼働中の部屋一覧 ({activeRoomList.length})
+          </h3>
+          <p style={{ fontSize: "11px", color: "#999", margin: "0 0 15px 0" }}>クリックすると上の「部屋の名前」に自動入力されます</p>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "200px", overflowY: "auto" }}>
+            {activeRoomList.length === 0 ? (
+              <p style={{ color: "#bbb", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>現在アクティブな部屋はありません</p>
+            ) : (
+              activeRoomList.map((rId) => {
+                const roomData = allRooms[rId];
+                const pCount = roomData?.players ? Object.keys(roomData.players).length : 0;
+                return (
+                  <div key={rId} style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center", 
+                    padding: "10px 12px", 
+                    backgroundColor: "#f8f9fa", 
+                    borderRadius: "10px", 
+                    border: "1px solid #eee" 
+                  }}>
+                    <div 
+                      onClick={() => setRoomId(rId)} 
+                      style={{ fontWeight: "bold", color: "#54a0ff", cursor: "pointer", fontSize: "14px", flex: 1, textDecoration: "underline" }}
+                    >
+                      🚪 {rId}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontSize: "12px", backgroundColor: "#e1f5fe", color: "#0288d1", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold" }}>
+                        👥 {pCount}人参加中
+                      </span>
+                      <button 
+                        onClick={() => forceResetRoomFromTop(rId)} 
+                        style={{ border: "none", backgroundColor: "transparent", color: "#ff4757", fontSize: "11px", cursor: "pointer", fontWeight: "bold" }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
