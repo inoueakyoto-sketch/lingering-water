@@ -94,13 +94,11 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // --- タイマー用ステート ---
   const [timerEndTime, setTimerEndTime] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [inputMinutes, setInputMinutes] = useState(3);
   const [inputSeconds, setInputSeconds] = useState(0);
 
-  // 通知リマインドの重複発生防止用フラグ
   const alerted3Min = useRef(false);
   const alerted1Min = useRef(false);
 
@@ -130,11 +128,18 @@ export default function App() {
           0%, 100% { box-shadow: 0 0 15px rgba(255, 71, 87, 0.4); }
           50% { box-shadow: 0 0 30px rgba(255, 71, 87, 0.8); }
         }
+        @keyframes ito-pulse-red {
+          0%, 100% { background-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.6); }
+          50% { background-color: #ff1e1e; box-shadow: 0 0 25px rgba(255, 30, 30, 0.9); }
+        }
         .animate-flip {
           animation: ito-flip 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         .animate-active-card {
           animation: ito-bounce 2s ease-in-out infinite, ito-glow 2s ease-in-out infinite;
+        }
+        .animate-timer-danger {
+          animation: ito-pulse-red 1s infinite;
         }
       `;
       document.head.appendChild(styleNode);
@@ -189,20 +194,17 @@ export default function App() {
       }
     });
 
-    // タイマー終了時刻の監視
     const timerRef = ref(db, `rooms/${roomId}/timerEndTime`);
     onValue(timerRef, (snapshot) => {
       const val = snapshot.val();
       setTimerEndTime(val || null);
       if (!val) {
-        // タイマーが消去されたらリマインド用フラグを元に戻す
         alerted3Min.current = false;
         alerted1Min.current = false;
       }
     });
   }, [roomId]);
 
-  // クライアント側でのカウントダウンタイマー制御
   useEffect(() => {
     if (!timerEndTime) {
       setTimeLeft(0);
@@ -214,7 +216,6 @@ export default function App() {
       const diff = Math.max(0, Math.floor((timerEndTime - now) / 1000));
       setTimeLeft(diff);
 
-      // ⏱️ リマインド処理 (3分前 = 180秒、1分前 = 60秒)
       if (diff === 180 && !alerted3Min.current) {
         alerted3Min.current = true;
         alert("⚠️ 回答締め切りまで残り【3分】です！");
@@ -297,7 +298,6 @@ export default function App() {
     setCustomMax("");
   };
 
-  // --- ⏰ タイマーの開始・終了処理 ---
   const startTimer = () => {
     const totalSeconds = (inputMinutes * 60) + Number(inputSeconds);
     if (totalSeconds <= 0) return alert("1秒以上の時間を設定してください。");
@@ -366,7 +366,7 @@ export default function App() {
       set(ref(db, `rooms/${roomId}/reveal`), null);
       set(ref(db, `rooms/${roomId}/theme`), null);
       set(ref(db, `rooms/${roomId}/chats`), null);
-      set(ref(db, `rooms/${roomId}/timerEndTime`), null); // タイマーもリセット
+      set(ref(db, `rooms/${roomId}/timerEndTime`), null);
       
       set(ref(db, `rooms/${roomId}/board`), Object.keys(updatedPlayers));
       setMyWord("");
@@ -378,11 +378,10 @@ export default function App() {
   const submittedPlayersCount = Object.values(players).filter((p: any) => p.word !== "").length;
   const isAllSubmitted = totalPlayersCount > 0 && totalPlayersCount === submittedPlayersCount;
 
-  // 残り時間の整形（◯分◯秒）
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}分 ${s.toString().padStart(2, "0")}秒`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const containerStyle: React.CSSProperties = {
@@ -515,24 +514,6 @@ export default function App() {
     <div style={containerStyle}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
         
-        {/* ⏰ グローバルカウントダウンタイマー（表示領域） */}
-        {timerEndTime && (
-          <div style={{ 
-            ...cardStyle, 
-            background: timeLeft <= 10 ? "linear-gradient(45deg, #ff4d4d, #ff4757)" : "linear-gradient(45deg, #3867d6, #45aaf2)", 
-            color: "white", 
-            textAlign: "center", 
-            padding: "12px", 
-            border: "2px solid #fff",
-            animation: timeLeft <= 10 ? "ito-glow 1s ease-in-out infinite" : "none"
-          }}>
-            <div style={{ fontSize: "14px", fontWeight: "bold" }}>⏰ 回答締め切りまでの残り時間</div>
-            <div style={{ fontSize: "28px", fontWeight: "900", marginTop: "3px", letterSpacing: "1px" }}>
-              {timeLeft > 0 ? `⏳ ${formatTime(timeLeft)}` : "⏰ 時間切れ！回答を締め切りました"}
-            </div>
-          </div>
-        )}
-        
         <div style={{ ...cardStyle, background: "linear-gradient(45deg, #54a0ff, #00d2d3)", color: "white", padding: "15px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
@@ -590,7 +571,6 @@ export default function App() {
             <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee", textAlign: "left" }}>
               <h4 style={{ margin: "0 0 10px 0", color: "#e65100" }}>⚙️ お題・タイマー設定（ホスト専用）</h4>
               
-              {/* ⏱️ タイマーコントロールパネル（追加部分） */}
               <div style={{ backgroundColor: "#e3f2fd", padding: "12px", borderRadius: "10px", border: "1px solid #90caf9", marginBottom: "15px" }}>
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#0d47a1", display: "block", marginBottom: "8px" }}>⏱️ 回答の制限時間タイマー</span>
                 {!timerEndTime ? (
@@ -603,7 +583,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "13px", fontWeight: "bold", color: "#1976d2" }}>現在タイマー作動中... ({formatTime(timeLeft)})</span>
+                    <span style={{ fontSize: "13px", fontWeight: "bold", color: "#1976d2" }}>現在タイマー作動中...</span>
                     <button onClick={stopTimer} style={{ ...buttonStyle("#d32f2f"), fontSize: "12px", padding: "6px 12px", borderRadius: "6px" }}>いつでも終了する</button>
                   </div>
                 )}
@@ -630,7 +610,6 @@ export default function App() {
           )}
         </div>
         
-        {/* 自分の秘密の数字カード */}
         <div style={{ ...cardStyle, background: "linear-gradient(135deg, #2d3436 0%, #000000 100%)", color: "white", textAlign: "center", border: "3px solid #ffd700" }}>
           <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#ffd700", fontWeight: "bold" }}>Your Secret Card</span>
           <div style={{ fontSize: "68px", fontWeight: "900", color: "#ffd700", textShadow: "0 0 15px rgba(255,215,0,0.6)", margin: "5px 0" }}>
@@ -647,7 +626,6 @@ export default function App() {
           )}
         </div>
 
-        {/* みんなの並べ替えエリア */}
         <div style={cardStyle}>
           <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3436" }}>🧩 みんなの並べ替えボード</h3>
           <p style={{ fontSize: "12px", color: "#74b9ff", margin: "0 0 15px 0", fontWeight: "bold" }}>💡 カードをドラッグして、数字が小さい順に並び替えよう！</p>
@@ -723,8 +701,31 @@ export default function App() {
           </div>
         </div>
 
-        {/* チャットエリア */}
+        {/* 💬 チャットエリア（この上部にタイマーを引っ越し＆巨大化） */}
         <div style={{ ...cardStyle, border: "2px solid #54a0ff", padding: "15px" }}>
+          
+          {/* ⏰ 新しい位置に移設した巨大タイマーエリア */}
+          {timerEndTime && (
+            <div className={timeLeft <= 10 ? "animate-timer-danger" : ""} style={{ 
+              backgroundColor: timeLeft <= 10 ? "#ff4d4d" : "#2d3436", 
+              color: "#fff", 
+              borderRadius: "15px", 
+              padding: "10px 15px", 
+              textAlign: "center", 
+              marginBottom: "15px",
+              boxShadow: "inset 0 2px 8px rgba(0,0,0,0.3)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              transition: "background-color 0.3s"
+            }}>
+              <span style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", opacity: 0.7, fontWeight: "bold", display: "block" }}>
+                ⏳ LIMIT TIMER
+              </span>
+              <span style={{ fontSize: "40px", fontFamily: "monospace", fontWeight: "900", display: "block", lineHeight: "1" }}>
+                {timeLeft > 0 ? formatTime(timeLeft) : "0:00 TIME UP"}
+              </span>
+            </div>
+          )}
+
           <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", fontWeight: "900", color: "#2d3436", display: "flex", alignItems: "center", gap: "5px" }}>
             💬 お部屋のチャット欄 <span style={{ fontSize: "11px", color: "#74b9ff", fontWeight: "normal" }}>※次のゲームへ進むとクリアされます</span>
           </h3>
