@@ -94,6 +94,16 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // --- タイマー用ステート ---
+  const [timerEndTime, setTimerEndTime] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [inputMinutes, setInputMinutes] = useState(3);
+  const [inputSeconds, setInputSeconds] = useState(0);
+
+  // 通知リマインドの重複発生防止用フラグ
+  const alerted3Min = useRef(false);
+  const alerted1Min = useRef(false);
+
   useEffect(() => {
     const roomsRef = ref(db, "rooms");
     onValue(roomsRef, (snapshot) => {
@@ -178,7 +188,49 @@ export default function App() {
         setChatList([]);
       }
     });
+
+    // タイマー終了時刻の監視
+    const timerRef = ref(db, `rooms/${roomId}/timerEndTime`);
+    onValue(timerRef, (snapshot) => {
+      const val = snapshot.val();
+      setTimerEndTime(val || null);
+      if (!val) {
+        // タイマーが消去されたらリマインド用フラグを元に戻す
+        alerted3Min.current = false;
+        alerted1Min.current = false;
+      }
+    });
   }, [roomId]);
+
+  // クライアント側でのカウントダウンタイマー制御
+  useEffect(() => {
+    if (!timerEndTime) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const diff = Math.max(0, Math.floor((timerEndTime - now) / 1000));
+      setTimeLeft(diff);
+
+      // ⏱️ リマインド処理 (3分前 = 180秒、1分前 = 60秒)
+      if (diff === 180 && !alerted3Min.current) {
+        alerted3Min.current = true;
+        alert("⚠️ 回答締め切りまで残り【3分】です！");
+      }
+      if (diff === 60 && !alerted1Min.current) {
+        alerted1Min.current = true;
+        alert("⚠️ 回答締め切りまで残り【1分】です！急いで提出しましょう！");
+      }
+
+      if (diff <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerEndTime]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -205,7 +257,7 @@ export default function App() {
 
   const forceResetRoomFromTop = (targetRoomId: string) => {
     if (!targetRoomId) return alert("お部屋の名前がありません。");
-    if (window.confirm(`「${targetRoomId}」のお部屋データを完全に初期化しますか？\n（動かなくなった場合の救急用ボタンです）`)) {
+    if (window.confirm(`「${targetRoomId}」のお部屋データを完全に初期化しますか？`)) {
       remove(ref(db, `rooms/${targetRoomId}`))
         .then(() => {
           alert(`「${targetRoomId}」の部屋データをクリアしました。`);
@@ -243,6 +295,21 @@ export default function App() {
     setCustomTitle("");
     setCustomMin("");
     setCustomMax("");
+  };
+
+  // --- ⏰ タイマーの開始・終了処理 ---
+  const startTimer = () => {
+    const totalSeconds = (inputMinutes * 60) + Number(inputSeconds);
+    if (totalSeconds <= 0) return alert("1秒以上の時間を設定してください。");
+    
+    const endTime = Date.now() + (totalSeconds * 1000);
+    alerted3Min.current = false;
+    alerted1Min.current = false;
+    set(ref(db, `rooms/${roomId}/timerEndTime`), endTime);
+  };
+
+  const stopTimer = () => {
+    set(ref(db, `rooms/${roomId}/timerEndTime`), null);
   };
 
   const sendChatMessage = () => {
@@ -284,29 +351,24 @@ export default function App() {
     set(ref(db, `rooms/${roomId}/reveal/index`), revealIndex + 1);
   };
 
-  // --- 🔄 メンバー維持のまま次ラウンドへ進むリセット処理 ---
   const resetGame = () => {
     if (window.confirm("現在のメンバーを維持したまま、次のゲーム（カード再配布）を始めますか？")) {
-      // 1. 各プレイヤーの「数字」のみ新しく抽選し、「言葉」を空っぽにするオブジェクトを作る
       const updatedPlayers: any = {};
       Object.keys(players).forEach((pName) => {
         updatedPlayers[pName] = {
           name: pName,
-          number: Math.floor(Math.random() * 100) + 1, // 新しいカードの再配布
-          word: "" // 言葉のリセット
+          number: Math.floor(Math.random() * 100) + 1,
+          word: ""
         };
       });
 
-      // 2. Firebaseの各データをまとめて更新・リセットする
-      set(ref(db, `rooms/${roomId}/players`), updatedPlayers); // メンバー維持のまま再配布
-      set(ref(db, `rooms/${roomId}/reveal`), null);            // めくり状況リセット
-      set(ref(db, `rooms/${roomId}/theme`), null);             // お題リセット
-      set(ref(db, `rooms/${roomId}/chats`), null);             // チャットリセット
+      set(ref(db, `rooms/${roomId}/players`), updatedPlayers);
+      set(ref(db, `rooms/${roomId}/reveal`), null);
+      set(ref(db, `rooms/${roomId}/theme`), null);
+      set(ref(db, `rooms/${roomId}/chats`), null);
+      set(ref(db, `rooms/${roomId}/timerEndTime`), null); // タイマーもリセット
       
-      // 3. ボードの初期並び順を現在のプレイヤー名リストでシャッフル（再配置）
       set(ref(db, `rooms/${roomId}/board`), Object.keys(updatedPlayers));
-      
-      // 4. 入力中の自分の言葉のテキストボックスを空にする
       setMyWord("");
       alert("カードを新しく配り直しました！ホストがお題を決めたらスタートです。");
     }
@@ -315,6 +377,13 @@ export default function App() {
   const totalPlayersCount = Object.keys(players).length;
   const submittedPlayersCount = Object.values(players).filter((p: any) => p.word !== "").length;
   const isAllSubmitted = totalPlayersCount > 0 && totalPlayersCount === submittedPlayersCount;
+
+  // 残り時間の整形（◯分◯秒）
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}分 ${s.toString().padStart(2, "0")}秒`;
+  };
 
   const containerStyle: React.CSSProperties = {
     fontFamily: "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif",
@@ -446,6 +515,24 @@ export default function App() {
     <div style={containerStyle}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
         
+        {/* ⏰ グローバルカウントダウンタイマー（表示領域） */}
+        {timerEndTime && (
+          <div style={{ 
+            ...cardStyle, 
+            background: timeLeft <= 10 ? "linear-gradient(45deg, #ff4d4d, #ff4757)" : "linear-gradient(45deg, #3867d6, #45aaf2)", 
+            color: "white", 
+            textAlign: "center", 
+            padding: "12px", 
+            border: "2px solid #fff",
+            animation: timeLeft <= 10 ? "ito-glow 1s ease-in-out infinite" : "none"
+          }}>
+            <div style={{ fontSize: "14px", fontWeight: "bold" }}>⏰ 回答締め切りまでの残り時間</div>
+            <div style={{ fontSize: "28px", fontWeight: "900", marginTop: "3px", letterSpacing: "1px" }}>
+              {timeLeft > 0 ? `⏳ ${formatTime(timeLeft)}` : "⏰ 時間切れ！回答を締め切りました"}
+            </div>
+          </div>
+        )}
+        
         <div style={{ ...cardStyle, background: "linear-gradient(45deg, #54a0ff, #00d2d3)", color: "white", padding: "15px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
@@ -501,8 +588,27 @@ export default function App() {
           
           {isHost && (
             <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee", textAlign: "left" }}>
-              <h4 style={{ margin: "0 0 10px 0", color: "#e65100" }}>⚙️ お題の変更設定（ホスト専用）</h4>
+              <h4 style={{ margin: "0 0 10px 0", color: "#e65100" }}>⚙️ お題・タイマー設定（ホスト専用）</h4>
               
+              {/* ⏱️ タイマーコントロールパネル（追加部分） */}
+              <div style={{ backgroundColor: "#e3f2fd", padding: "12px", borderRadius: "10px", border: "1px solid #90caf9", marginBottom: "15px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#0d47a1", display: "block", marginBottom: "8px" }}>⏱️ 回答の制限時間タイマー</span>
+                {!timerEndTime ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input type="number" min="0" max="60" value={inputMinutes} onChange={(e) => setInputMinutes(Number(e.target.value))} style={{ padding: "8px", width: "45px", textAlign: "center", borderRadius: "6px", border: "1px solid #ccc" }} />
+                    <span style={{ fontSize: "13px", fontWeight: "bold" }}>分</span>
+                    <input type="number" min="0" max="59" value={inputSeconds} onChange={(e) => setInputSeconds(Number(e.target.value))} style={{ padding: "8px", width: "45px", textAlign: "center", borderRadius: "6px", border: "1px solid #ccc" }} />
+                    <span style={{ fontSize: "13px", fontWeight: "bold" }}>秒</span>
+                    <button onClick={startTimer} style={{ ...buttonStyle("#1976d2"), fontSize: "13px", padding: "8px 15px", borderRadius: "8px", flex: 1 }}>⏱️ タイマー開始</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "bold", color: "#1976d2" }}>現在タイマー作動中... ({formatTime(timeLeft)})</span>
+                    <button onClick={stopTimer} style={{ ...buttonStyle("#d32f2f"), fontSize: "12px", padding: "6px 12px", borderRadius: "6px" }}>いつでも終了する</button>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
                 <button onClick={pickRandomTheme} style={{ ...buttonStyle("#ff6b6b"), fontSize: "14px", padding: "10px 24px", width: "100%" }}>
                   🎲 100種類の山札からランダムに引く
@@ -617,6 +723,7 @@ export default function App() {
           </div>
         </div>
 
+        {/* チャットエリア */}
         <div style={{ ...cardStyle, border: "2px solid #54a0ff", padding: "15px" }}>
           <h3 style={{ margin: "0 0 10px 0", fontSize: "16px", fontWeight: "900", color: "#2d3436", display: "flex", alignItems: "center", gap: "5px" }}>
             💬 お部屋のチャット欄 <span style={{ fontSize: "11px", color: "#74b9ff", fontWeight: "normal" }}>※次のゲームへ進むとクリアされます</span>
@@ -691,8 +798,8 @@ export default function App() {
               <div>
                 <p style={{ fontSize: "13px", marginBottom: "12px", color: "#666" }}>全員の「言葉」が出揃い、並び替えが終わったらオープンしてください：</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1（smaller）からめくる</button>
-                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100（larger）からめくる</button>
+                  <button onClick={() => startReveal("asc")} style={{ ...buttonStyle("#2ed573"), fontSize: "14px", flex: 1 }}>1からめくる</button>
+                  <button onClick={() => startReveal("desc")} style={{ ...buttonStyle("#1e90ff"), fontSize: "14px", flex: 1 }}>100からめくる</button>
                 </div>
               </div>
             ) : (
